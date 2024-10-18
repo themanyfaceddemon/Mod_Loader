@@ -4,6 +4,11 @@
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
   "editor.wordWrap": "on",
+  "python.analysis.importFormat": "relative",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportUnusedCoroutine": "error"
+  },
+  "python.analysis.typeCheckingMode": "standard",
   "todohighlight.keywords": [
     {
       "text": "DEBUG",

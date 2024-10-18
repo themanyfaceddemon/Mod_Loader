@@ -1,0 +1,5 @@
+dearpygui
+dearpygui-async
+pyyaml
+dearpygui-extend
+fileseq
