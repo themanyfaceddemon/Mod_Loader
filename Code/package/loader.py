@@ -17,13 +17,13 @@ class PackageLoader:
     def _parse_package(package_path: Path, local_load: bool, order: int) -> Package:
         filelist_path = package_path / "filelist.xml"
         if not filelist_path.exists():
-            raise ValueError(f"Файл {filelist_path} не найден.")
+            raise ValueError(f"File {filelist_path} not found")
 
         tree = ET.parse(filelist_path)
         root = tree.getroot()
 
         if root.tag != "contentpackage":
-            raise ValueError(f"contentpackage в {filelist_path} не найден.")
+            raise ValueError(f"contentpackage in {filelist_path} not found")
 
         return Package(
             name=root.get("name", "Error"),
@@ -43,7 +43,7 @@ class PackageLoader:
 
         regular_packages = content_packages.find("regularpackages")
         if regular_packages is None:
-            raise ValueError("Не найден тег <regularpackages>")
+            raise ValueError("Not found <regularpackages>")
 
         PackageLoader._load_packages(regular_packages)
 

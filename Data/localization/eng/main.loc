@@ -1,1 +1,19 @@
 viewport-name = Mod loader
+
+menu-bar = Settings and configs
+set-barotrauma-dir = Set barotrauma dir path
+toggle-viewport-fullscreen = Toggle fullscreen
+
+user-not-set-barotrauma-dir = You have not set the path to the game folder. Please do this in "Settings and configs"
+
+fd-window-name = Select barotrauma dir
+
+filter-packs = Search for mods
+
+use-lua-package = Use LUA?
+use-cs-package = Use CS?
+use-dll-package = Use DLL?
+override-package = Override something?
+
+yes = Yes
+no = No
