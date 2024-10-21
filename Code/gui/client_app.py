@@ -8,7 +8,7 @@ from dearpygui_async import DearPyGuiAsync
 from Code.app_vars import AppGlobalsAndConfig
 from Code.dpg_tools import center_window, decode_string
 from Code.loc import Localization as loc
-from Code.package.loader import PackageLoader
+from Code.package import PackageLoader, Package
 
 from .fonts_setup import FontManager
 
@@ -88,11 +88,30 @@ class App:
             return
 
         PackageLoader.load(f"{baro_dir}/config_player.xml")
+        App.refresh_mods_list()
+
+    @staticmethod
+    def refresh_mods_list():
         dpg.delete_item("package_cw", children_only=True)
+
+        PackageLoader._active_packages.sort(
+            key=lambda x: getattr(x, "order", float("inf"))
+        )
 
         for obj in PackageLoader._active_packages:
             uuid = dpg.generate_uuid()
-            dpg.add_text(obj.name, parent="package_cw", wrap=0, tag=uuid)
+            dpg.add_text(
+                obj.name,
+                parent="package_cw",
+                wrap=0,
+                tag=uuid,
+                drop_callback=App.reorder_mods_callback,
+                payload_type="MOD_ORDER",
+                user_data=obj,
+            )
+            dpg.add_drag_payload(
+                label=obj.name, parent=uuid, payload_type="MOD_ORDER", drag_data=obj
+            )
             App.create_package_tooltip(uuid, obj)
             dpg.add_separator(indent=40, parent="package_cw")
 
@@ -189,3 +208,25 @@ class App:
 
                 else:
                     dpg.hide_item(item)
+
+    @staticmethod
+    def reorder_mods_callback(sender, drag_data):
+        source_mod: Package = drag_data
+        target_mod: Package = dpg.get_item_user_data(sender)  # type: ignore
+
+        if source_mod.order != target_mod.order:
+            source_order = source_mod.order
+            target_order = target_mod.order
+
+            if source_order < target_order:
+                for mod in PackageLoader._active_packages:
+                    if source_order < mod.order <= target_order:
+                        mod.order -= 1
+                source_mod.order = target_order
+            else:
+                for mod in PackageLoader._active_packages:
+                    if target_order <= mod.order < source_order:
+                        mod.order += 1
+                source_mod.order = target_order
+
+            App.refresh_mods_list()
