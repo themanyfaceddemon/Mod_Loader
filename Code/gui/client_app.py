@@ -25,6 +25,13 @@ class App:
     def initialize_app(self):
         dpg.create_context()
         FontManager.load_fonts()
+        self._setup_viewport()
+        dpg.setup_dearpygui()
+        dpg.show_viewport()
+        sys.excepthook = self.global_exception_handler
+        dpg.set_viewport_resize_callback(self.set_up_main_window)
+
+    def _setup_viewport(self):
         dpg.create_viewport(
             title=loc.get_string("viewport-name"),
             width=600,
@@ -32,10 +39,6 @@ class App:
             height=400,
             min_height=400,
         )
-        dpg.setup_dearpygui()
-        dpg.show_viewport()
-        sys.excepthook = App.global_exception_handler
-        dpg.set_viewport_resize_callback(self.set_up_main_window)
 
     def create_windows(self):
         self.create_fd_window()
@@ -56,75 +59,77 @@ class App:
 
     def setup_menu_bar(self):
         with dpg.menu(parent="main_window_menu_bar", label=loc.get_string("menu-bar")):
-            dpg.add_button(
-                label=loc.get_string("set-barotrauma-dir"),
-                callback=self.show_fd_window,
-            )
-            dpg.add_button(
-                label=loc.get_string("toggle-viewport-fullscreen"),
-                callback=lambda: dpg.toggle_viewport_fullscreen(),
-            )
+            self._add_menu_buttons()
 
-    @staticmethod
-    def show_fd_window():
+    def _add_menu_buttons(self):
+        dpg.add_button(
+            label=loc.get_string("set-barotrauma-dir"),
+            callback=self.show_fd_window,
+        )
+        dpg.add_button(
+            label=loc.get_string("toggle-viewport-fullscreen"),
+            callback=lambda: dpg.toggle_viewport_fullscreen(),
+        )
+
+    def show_fd_window(self):
         if dpg.is_item_shown("fd_window"):
             dpg.focus_item("fd_window")
         else:
             dpg.show_item("fd_window")
 
-    @staticmethod
-    def file_browser_callback(sender, file, cancel_pressed):
+    def file_browser_callback(self, sender, file, cancel_pressed):
         if not cancel_pressed:
             AppGlobalsAndConfig.set_config("barotrauma_dir_path", file[0])
             dpg.delete_item("warning_text")
-            App.load_package()
+            self.load_package()
 
         dpg.hide_item("fd_window")
 
-    @staticmethod
-    def load_package() -> None:
+    def load_package(self) -> None:
         baro_dir = AppGlobalsAndConfig.get_config("barotrauma_dir_path")
         if not baro_dir:
             return
 
         PackageLoader.load(f"{baro_dir}/config_player.xml")
-        App.refresh_mods_list()
+        self.refresh_mods_list()
 
-    @staticmethod
-    def refresh_mods_list():
+    def refresh_mods_list(self):
         dpg.delete_item("package_cw", children_only=True)
+        self._sort_packages()
 
+        for obj in PackageLoader._active_packages:
+            self._create_package_item(obj)
+
+    def _sort_packages(self):
         PackageLoader._active_packages.sort(
             key=lambda x: getattr(x, "order", float("inf"))
         )
 
-        for obj in PackageLoader._active_packages:
-            uuid = dpg.generate_uuid()
-            dpg.add_text(
-                obj.name,
-                parent="package_cw",
-                wrap=0,
-                tag=uuid,
-                drop_callback=App.reorder_mods_callback,
-                payload_type="MOD_ORDER",
-                user_data=obj,
-            )
-            dpg.add_drag_payload(
-                label=obj.name, parent=uuid, payload_type="MOD_ORDER", drag_data=obj
-            )
-            App.create_package_tooltip(uuid, obj)
-            dpg.add_separator(indent=40, parent="package_cw")
+    def _create_package_item(self, obj):
+        uuid = dpg.generate_uuid()
+        dpg.add_text(
+            obj.name,
+            parent="package_cw",
+            wrap=0,
+            tag=uuid,
+            drop_callback=self.reorder_mods_callback,
+            payload_type="MOD_ORDER",
+            user_data=obj,
+        )
+        dpg.add_drag_payload(
+            label=obj.name, parent=uuid, payload_type="MOD_ORDER", drag_data=obj
+        )
+        self.create_package_tooltip(uuid, obj)
+        dpg.add_separator(indent=40, parent="package_cw")
 
-    @staticmethod
-    def create_package_tooltip(parent_id, package_obj):
+    def create_package_tooltip(self, parent_id, package_obj):
         with dpg.tooltip(parent=parent_id):
-            App.add_package_info("use-lua-package", package_obj.has_lua)
-            App.add_package_info("use-cs-package", package_obj.has_cs)
-            App.add_package_info("use-dll-package", package_obj.has_dll)
-            App.add_package_info("override-package", package_obj.override)
+            self.add_package_info("use-lua-package", package_obj.has_lua)
+            self.add_package_info("use-cs-package", package_obj.has_cs)
+            self.add_package_info("use-dll-package", package_obj.has_dll)
+            self.add_package_info("override-package", package_obj.override)
 
-    @staticmethod
-    def add_package_info(label_key, condition):
+    def add_package_info(self, label_key, condition):
         with dpg.group(horizontal=True):
             dpg.add_text(loc.get_string(label_key))
             dpg.add_text(
@@ -142,18 +147,21 @@ class App:
             no_title_bar=True, no_move=True, no_resize=True, tag="main_window"
         ):
             dpg.add_menu_bar(tag="main_window_menu_bar")
-            if not AppGlobalsAndConfig.get_config("barotrauma_dir_path"):
-                dpg.add_text(
-                    loc.get_string("user-not-set-barotrauma-dir"),
-                    color=[255, 0, 0, 255],
-                    tag="warning_text",
-                    wrap=0,
-                )
-            dpg.add_input_text(
-                callback=self.filter_items, hint=loc.get_string("filter-packs")
+            self._add_main_window_content()
+
+    def _add_main_window_content(self):
+        if not AppGlobalsAndConfig.get_config("barotrauma_dir_path"):
+            dpg.add_text(
+                loc.get_string("user-not-set-barotrauma-dir"),
+                color=[255, 0, 0, 255],
+                tag="warning_text",
+                wrap=0,
             )
-            dpg.add_child_window(tag="package_cw")
-            self.load_package()
+        dpg.add_input_text(
+            callback=self.filter_items, hint=loc.get_string("filter-packs")
+        )
+        dpg.add_child_window(tag="package_cw")
+        self.load_package()
 
     def create_fd_window(self):
         with dpg.window(
@@ -178,55 +186,54 @@ class App:
 
     def filter_items(self, sender, app_data, user_data=None):
         App._filter_text = decode_string(app_data).lower()
+        self._filter_mods()
 
+    def _filter_mods(self):
         children = dpg.get_item_children("package_cw", 1)
-        if children is None:
+        if not children:
             return
 
         show_separator = False
         for item in children:
             item_type = dpg.get_item_type(item)
             if item_type == "mvAppItemType::mvText":
-                item_text = dpg.get_value(item)
-
-                if item_text is None:
-                    dpg.hide_item(item)
-                    continue
-
-                item_text = item_text.lower()
-
-                if App._filter_text in item_text:
-                    dpg.show_item(item)
-                    show_separator = True
-                else:
-                    dpg.hide_item(item)
-
+                show_separator = self._filter_item_by_text(item, show_separator)
             elif item_type == "mvAppItemType::mvSeparator":
-                if show_separator:
-                    dpg.show_item(item)
-                    show_separator = False
+                self._toggle_separator(item, show_separator)
 
-                else:
-                    dpg.hide_item(item)
+    def _filter_item_by_text(self, item, show_separator):
+        item_text = dpg.get_value(item)
+        if not item_text or App._filter_text not in item_text.lower():
+            dpg.hide_item(item)
+            return show_separator
+        dpg.show_item(item)
+        return True
 
-    @staticmethod
-    def reorder_mods_callback(sender, drag_data):
+    def _toggle_separator(self, item, show_separator):
+        if show_separator:
+            dpg.show_item(item)
+        else:
+            dpg.hide_item(item)
+
+    def reorder_mods_callback(self, sender, drag_data):
         source_mod: Package = drag_data
         target_mod: Package = dpg.get_item_user_data(sender)  # type: ignore
 
         if source_mod.order != target_mod.order:
-            source_order = source_mod.order
-            target_order = target_mod.order
+            self._reorder_mods(source_mod, target_mod)
+            self.refresh_mods_list()
 
-            if source_order < target_order:
-                for mod in PackageLoader._active_packages:
-                    if source_order < mod.order <= target_order:
-                        mod.order -= 1
-                source_mod.order = target_order
-            else:
-                for mod in PackageLoader._active_packages:
-                    if target_order <= mod.order < source_order:
-                        mod.order += 1
-                source_mod.order = target_order
+    def _reorder_mods(self, source_mod, target_mod):
+        source_order = source_mod.order
+        target_order = target_mod.order
 
-            App.refresh_mods_list()
+        if source_order < target_order:
+            for mod in PackageLoader._active_packages:
+                if source_order < mod.order <= target_order:
+                    mod.order -= 1  # type: ignore
+            source_mod.order = target_order
+        else:
+            for mod in PackageLoader._active_packages:
+                if target_order <= mod.order < source_order:
+                    mod.order += 1  # type: ignore
+            source_mod.order = target_order
