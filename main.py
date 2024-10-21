@@ -5,6 +5,7 @@ from pathlib import Path
 from Code.app_vars import AppGlobalsAndConfig
 from Code.gui.client_app import App
 from Code.loc import Localization as loc
+from Code.package import PackageLoader
 
 
 class FixedWidthFormatter(logging.Formatter):
@@ -15,6 +16,7 @@ class FixedWidthFormatter(logging.Formatter):
 
 def init_classes() -> None:
     AppGlobalsAndConfig.init()
+    PackageLoader.init()
 
 
 def main() -> None:
@@ -32,9 +34,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description="Запуск клиента DMBot")
-    parser.add_argument("--debug", action="store_true", help="Включение режима отладки")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action="store_true", help="Debug on")
 
     args = parser.parse_args()
 

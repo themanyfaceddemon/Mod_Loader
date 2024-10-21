@@ -8,7 +8,7 @@ from dearpygui_async import DearPyGuiAsync
 from Code.app_vars import AppGlobalsAndConfig
 from Code.dpg_tools import center_window, decode_string
 from Code.loc import Localization as loc
-from Code.package import PackageLoader, Package
+from Code.package import Package, PackageLoader
 
 from .fonts_setup import FontManager
 
