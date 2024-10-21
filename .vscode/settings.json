@@ -18,6 +18,13 @@
       "overviewRulerColor": "blue"
     },
     {
+      "text": "WARNING",
+      "color": "yellow",
+      "border": "1px solid yellow",
+      "backgroundColor": "rgba(0, 0, 0, 0.02)",
+      "overviewRulerColor": "yellow"
+    },
+    {
       "text": "FIXME",
       "color": "red",
       "border": "1px solid red",
@@ -33,6 +40,20 @@
     },
     {
       "text": "TODO",
+      "color": "green",
+      "border": "1px solid green",
+      "backgroundColor": "rgba(0, 255, 0, 0.02)",
+      "overviewRulerColor": "green"
+    },
+    {
+      "text": "INFO",
+      "color": "green",
+      "border": "1px solid green",
+      "backgroundColor": "rgba(0, 255, 0, 0.02)",
+      "overviewRulerColor": "green"
+    },
+    {
+      "text": "NOTE",
       "color": "green",
       "border": "1px solid green",
       "backgroundColor": "rgba(0, 255, 0, 0.02)",
