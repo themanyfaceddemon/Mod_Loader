@@ -14,7 +14,7 @@ if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n
     exit 1
 fi
 
-VENV_DIR="venv"
+VENV_DIR="./.venv"
 NEW_ENV=0
 
 if [ ! -d "$VENV_DIR" ]; then
