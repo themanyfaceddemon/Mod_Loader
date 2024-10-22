@@ -1,0 +1,35 @@
+<!-- This is an example of dependens.xml -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<dependencies IgnoreLUACheck="false" IgnoreCSDLLCheck="false">
+    <!-- 
+        IgnoreLUACheck: If set to "true", the mod loader will ignore the presence of .lua files when sorting.
+        
+        IgnoreCSDLLCheck: If set to "true", the mod loader will ignore the presence of .cs or .dll files when sorting. 
+        Also disables CSScript checks on the client.
+    -->
+    
+    <patch>
+        <!-- Mods that must load AFTER your mod. Your mod will override their content. -->
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+    </patch>
+    
+    <requirement>
+        <!-- Mods that must load BEFORE your mod because they rely on its content. -->
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+    </requirement>
+
+    <optional>
+        <!-- Optional mods. These are compatible but not required for your mod to work. -->
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+    </optional>
+    
+    <conflict>
+        <!-- Mods that are incompatible with your mod. -->
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+        <mod name="Some mod name in filelist.xml" steamID="123" />
+    </conflict>
+</dependencies>

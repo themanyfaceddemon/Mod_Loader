@@ -1,7 +1,9 @@
 import logging
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
+
+logger = logging.getLogger("Package parsing")
 
 
 class Package:
@@ -17,145 +19,175 @@ class Package:
         self.local: bool = local
         self.order: Optional[int] = order
 
-        self.has_lua: bool = False
-        self.has_cs: bool = False
-        self.has_dll: bool = False
+        self.ignore_lua_check: bool = False
+        self.ignore_cs_dll_check: bool = False
+        self.has_lua: bool = self._has_file_type(".lua")
+        self.has_cs: bool = self._has_file_type(".cs")
+        self.has_dll: bool = self._has_file_type(".dll")
 
-        self.override: Optional[Set[str]] = None
-        self._check_files()
+        self.override: Optional[Set[str]] = self._collect_overrides()
+        self.dependencies: Dict[str, Dict[str, Dict[str, str]]] = (
+            self._parse_dependencies()
+        )
 
-    def _check_files(self) -> None:
-        xml_files = self._find_xml_files(self.path)
-        all_overrides = set()
-        for xml_file in xml_files:
-            result = self._get_override(xml_file)
-            if result:
-                all_overrides.update(result)
+    def _has_file_type(self, file_extension: str) -> bool:
+        """Check if the specified file type exists in the path."""
+        return any(self.path.rglob(f"*{file_extension}"))
 
-        self.override = all_overrides if all_overrides else None
+    def _collect_overrides(self) -> Optional[Set[str]]:
+        """Collect all overrides by parsing XML files."""
+        xml_files = self._find_xml_files()
+        all_overrides = {
+            override
+            for xml_file in xml_files
+            for override in self._get_override(xml_file) or []
+        }
+        return all_overrides if all_overrides else None
 
-        if self._find_lua_files(self.path):
-            self.has_lua = True
+    def _parse_dependencies(self) -> Dict[str, Dict[str, Dict[str, str]]]:
+        """Parse dependencies from the XML file."""
+        dependency_file = self.path / "dependens.xml"
+        if not dependency_file.exists():
+            return {
+                category: {}
+                for category in ["patch", "requirement", "optional", "conflict"]
+            }
 
-        if self._find_cs_files(self.path):
-            self.has_cs = True
+        tree = ET.parse(str(dependency_file))
+        root = tree.getroot()
 
-        if self._find_dll_files(self.path):
-            self.has_dll = True
+        self._parse_ignore_checks(root)
+        dependencies = {
+            category: self._parse_mods_in_category(root, category)
+            for category in ["patch", "requirement", "optional", "conflict"]
+        }
 
-    def _find_xml_files(self, directory: Path) -> Set[Path]:
-        return set(directory.rglob("*.xml"))
+        return dependencies
 
-    def _find_lua_files(self, directory: Path) -> Set[Path]:
-        return set(directory.rglob("*.lua"))
+    def _parse_ignore_checks(self, root: ET.Element) -> None:
+        """Parse flags for ignoring Lua and CS/DLL checks."""
+        self.ignore_lua_check = root.get("IgnoreLUACheck", "false").lower() == "true"
+        self.ignore_cs_dll_check = (
+            root.get("IgnoreCSDLLCheck", "false").lower() == "true"
+        )
 
-    def _find_dll_files(self, directory: Path) -> Set[Path]:
-        return set(directory.rglob("*.dll"))
+    def _parse_mods_in_category(
+        self, root: ET.Element, category: str
+    ) -> Dict[str, Dict[str, str]]:
+        """Parse mods for a given category."""
+        category_element = root.find(category)
 
-    def _find_cs_files(self, directory: Path) -> Set[Path]:
-        return set(directory.rglob("*.cs"))
+        if category_element is None:
+            return {}
+
+        return {
+            mod.get("name", "NotSetModName"): self._extract_mod_info(mod)
+            for mod in category_element.findall("mod")
+        }
+
+    def _extract_mod_info(self, mod_element: ET.Element) -> Dict[str, str]:
+        """Extract mod information including name and optional steamID."""
+        mod_info = {"name": mod_element.get("name", "NotSetModName")}
+
+        steam_id = mod_element.get("steamID")
+        if steam_id:
+            mod_info["steamID"] = steam_id
+
+        return mod_info
+
+    def _find_xml_files(self) -> Set[Path]:
+        """Find all XML files in the given path."""
+        return set(self.path.rglob("*.xml"))
 
     def _get_override(self, xml_file: Path) -> Optional[Set[str]]:
-        override = set()
-
         try:
             tree = ET.parse(str(xml_file))
             root = tree.getroot()
+
             if root.tag in {"infotext", "infotexts"}:
                 return None
 
             if root.tag == "Override":
-                override.update(self._process_override(root, root))
+                return self._process_override(root, root)
 
-            else:
-                override_elements = root.findall(".//Override")
-
-                if override_elements:
-                    for override_element in override_elements:
-                        override.update(self._process_override(override_element, root))
+            override_elements = root.findall(".//Override")
+            return (
+                {
+                    override
+                    for element in override_elements
+                    for override in self._process_override(element, root)
+                }
+                if override_elements
+                else None
+            )
 
         except ET.ParseError as e:
-            logging.error(f"Failed to parse XML: {xml_file}. Error: {e}")
-
-        return override if override else None
+            logger.error(f"Failed to parse XML: {xml_file}. Error: {e}")
+            return None
 
     def _process_override(
         self, override_element: ET.Element, parent_element: ET.Element
     ) -> Set[str]:
-        override = set()
+        overrides = set()
 
         for elem in override_element:
-            elem_name = elem.tag.lower()
+            method_name = f"_pars_{elem.tag.lower()}"
             parent_method_name = f"_pars_{parent_element.tag.lower()}"
-            method_name = f"_pars_{elem_name}"
 
             if hasattr(self, method_name):
                 method = getattr(self, method_name)
-                override.update(method(elem))
+                overrides.update(method(elem))
 
             elif hasattr(self, parent_method_name):
                 method = getattr(self, parent_method_name)
-                override.update(method(elem))
+                overrides.update(method(elem))
 
             else:
-                logging.warning(
-                    f"Method not found for element {elem.tag} | method_name: {method_name} | parent_method_name: {parent_method_name}"
+                logger.warning(
+                    f"Method not found for element {elem.tag}\n"
+                    f"| method_name: {method_name}\n"
+                    f"| parent_method_name: {parent_method_name}"
                 )
 
-        return override
+        return overrides
 
     def _pars_character(self, elem: ET.Element) -> List[str]:
         return [f"Character.{elem.get('SpeciesName')}"]
 
     def _pars_afflictions(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for afflict in elem:
-            ids.extend(self._pars_affliction(afflict))
-
-        return ids
+        return [
+            affliction
+            for afflict in elem
+            for affliction in self._pars_affliction(afflict)
+        ]
 
     def _pars_affliction(self, elem: ET.Element) -> List[str]:
-        ids = []
-        id = elem.get("identifier")
+        identifier = elem.get("identifier")
+        if identifier:
+            return [f"Affliction.{identifier}"]
 
-        if id is None:
-            if elem.tag == "CPRSettings":
-                ids.append("Affliction.CPRSettings")
-            else:
-                logging.warning(
-                    f"Affliction identifier not found in {ET.tostring(elem, encoding='utf-8')}"
-                )
-        else:
-            ids.append(f"Affliction.{id}")
+        if elem.tag == "CPRSettings":
+            return ["Affliction.CPRSettings"]
 
-        return ids
+        logger.warning(
+            f"Affliction identifier not found in {ET.tostring(elem, encoding='utf-8')}"
+        )
+        return []
 
     def _pars_afflictionhusk(self, elem: ET.Element) -> List[str]:
-        return [f"AfflictionHusk.{elem.get('identifier')}"]
+        return ["Affliction.AfflictionHusk"]
 
     def _pars_talenttrees(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for job in elem:
-            ids.extend(self._pars_talenttree(job))
-
-        return ids
+        return [talent for job in elem for talent in self._pars_talenttree(job)]
 
     def _pars_talenttree(self, elem: ET.Element) -> List[str]:
-        ids = []
-
         job_id = elem.get("jobidentifier")
-        for sub_tree in elem:
-            sub_tree_id = sub_tree.get("identifier")
-            ids.append(f"TalentTree.{job_id}.{sub_tree_id}")
-
-        return ids
+        return [
+            f"TalentTree.{job_id}.{sub_tree.get('identifier')}" for sub_tree in elem
+        ]
 
     def _pars_items(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for item in elem:
-            ids.extend(self._pars_item(item))
-
-        return ids
+        return [item for item_elem in elem for item in self._pars_item(item_elem)]
 
     def _pars_item(self, elem: ET.Element) -> List[str]:
         return [f"Item.{elem.get('identifier')}"]
@@ -167,65 +199,55 @@ class Package:
         return [f"EventSet.{elem.get('identifier')}"]
 
     def _pars_missions(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for mission in elem:
-            ids.append(f"Mission.{mission.get('identifier')}")
-
-        return ids
+        return [f"Mission.{mission.get('identifier')}" for mission in elem]
 
     def _pars_sounds(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for sound in elem:
-            sound_type = sound.tag
-            if sound_type == "music":
-                ids.append(f"Sound.music.{sound.get('type')}")
-            elif sound_type == "damagesound":
-                ids.append(f"Sound.damagesoundtype.{sound.get('damagesoundtype')}")
-            elif sound_type == "guisound":
-                ids.append(f"Sound.guisound.{sound.get('guisoundtype')}")
-            else:
-                ids.append(f"Sound.{sound_type}")  # WARNING Может вызвать баги
+        return [sound for sound_elem in elem for sound in self._pars_sound(sound_elem)]
 
-        return ids
+    def _pars_sound(self, elem: ET.Element) -> List[str]:
+        sound_type = elem.tag
+        sound_value = {
+            "music": f"Sound.music.{elem.get('type')}",
+            "damagesound": f"Sound.damagesoundtype.{elem.get('damagesoundtype')}",
+            "guisound": f"Sound.guisound.{elem.get('guisoundtype')}",
+        }.get(sound_type, f"Sound.{sound_type}")
+
+        return [sound_value]
 
     def _pars_skillsettings(self, elem: ET.Element) -> List[str]:
         return ["SkillSettings"]
 
     def _pars_biomes(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for biome in elem:
-            ids.extend(self._pars_biome(biome))
-
-        return ids
+        return [biome for biome_elem in elem for biome in self._pars_biome(biome_elem)]
 
     def _pars_biome(self, elem: ET.Element) -> List[str]:
         return [f"Biome.{elem.get('identifier')}"]
 
     def _pars_levelgenerationparameters(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for el in elem:
-            if el.tag not in {"Biomes", "Biome"}:
-                ids.append(f'LevelGenerationParameters.{el.get('identifier')}')
-
-        return ids
+        return [
+            f'LevelGenerationParameters.{el.get("identifier")}'
+            for el in elem
+            if el.tag not in {"Biomes", "Biome"}
+        ]
 
     def _pars_randomevents(self, elem: ET.Element) -> List[str]:
-        ids = []
-        events = elem.findall(
-            ".//ScriptedEvent"
-        )  # WARNING Возможны проблемы при перезаписи иконок. ХЗ
-        if events:
-            for event in events:
-                ids.append(f"ScriptedEvent.{event.get('ScriptedEvent')}")
-
-        return ids
+        events = elem.findall(".//ScriptedEvent")
+        return (
+            [f"ScriptedEvent.{event.get('ScriptedEvent')}" for event in events]
+            if events
+            else []
+        )
 
     def _pars_locationtypes(self, elem: ET.Element) -> List[str]:
-        ids = []
-        for location in elem:
-            ids.append(f"Locationtypes.{location.get('identifier')}")
-
-        return ids
+        return [f"Locationtypes.{location.get('identifier')}" for location in elem]
 
     def __str__(self) -> str:
-        return f"Name: {self.name}\nLocal mod: {self.local}\nLoad order: {self.order}\nHas lua: {self.has_lua}\nHas CS: {self.has_cs}\nHas DLL: {self.has_dll}\nOverride: {self.override}"
+        return (
+            f"Name: {self.name}\n"
+            f"Local mod: {self.local}\n"
+            f"Load order: {self.order}\n"
+            f"Has lua: {self.has_lua}\n"
+            f"Has CS: {self.has_cs}\n"
+            f"Has DLL: {self.has_dll}\n"
+            f"Override: {self.override}"
+        )
