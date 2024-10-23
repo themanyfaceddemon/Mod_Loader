@@ -157,11 +157,17 @@ class App:
                 tag="warning_text",
                 wrap=0,
             )
-        dpg.add_input_text(
-            callback=self.filter_items, hint=loc.get_string("filter-packs")
-        )
+        with dpg.group(horizontal=True):
+            dpg.add_input_text(
+                callback=self.filter_items, hint=loc.get_string("filter-packs")
+            )
+            dpg.add_button(label="sort-button", callback=self._sort_packages_loader)
         dpg.add_child_window(tag="package_cw")
         self.load_package()
+
+    def _sort_packages_loader(self):
+        PackageLoader._active_packages = PackageLoader.sort_packages()
+        self.refresh_mods_list()
 
     def create_fd_window(self):
         with dpg.window(

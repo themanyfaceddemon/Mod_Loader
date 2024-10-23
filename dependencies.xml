@@ -1,4 +1,4 @@
-<!-- This is an example of dependens.xml -->
+<!-- This is an example of dependencies.xml -->
 
 <?xml version="1.0" encoding="UTF-8"?>
 <dependencies IgnoreLUACheck="false" IgnoreCSDLLCheck="false">

@@ -1,0 +1,15 @@
+<internal_dependencies>
+    <!-- Neurotrauma orig -->
+    <dependency steamID="2776270649">
+        <conflict>
+            <mod steamID="3190189044" />
+        </conflict>
+    </dependency>
+
+    <!-- Neurotrauma fork -->
+    <dependency steamID="3190189044">
+        <conflict>
+            <mod steamID="2776270649" />
+        </conflict>
+    </dependency>
+</internal_dependencies>
