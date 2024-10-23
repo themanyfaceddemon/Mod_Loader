@@ -260,10 +260,10 @@ class PackageLoader:
                     visit(neighbor)
                 temp_marks.remove(node)
                 visited.add(node)
-                sorted_packages.insert(0, node)
+                sorted_packages.append(node)
 
         for node in nodes:
             if node not in visited:
                 visit(node)
 
-        return sorted_packages[::-1]
+        return sorted_packages
