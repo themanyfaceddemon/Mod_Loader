@@ -32,7 +32,8 @@ class Package:
             self._parse_dependencies()
         )
 
-    def get_identifier(self) -> str:
+    @property
+    def identifier(self) -> str:
         return self.steamID if self.steamID else self.name
 
     def _has_file_type(self, file_extension: str) -> bool:

@@ -161,7 +161,8 @@ class App:
             dpg.add_input_text(
                 callback=self.filter_items, hint=loc.get_string("filter-packs")
             )
-            dpg.add_button(label="sort-button", callback=self._sort_packages_loader)
+            dpg.add_button(label=loc.get_string("sort-button"), callback=self._sort_packages_loader)
+        
         dpg.add_child_window(tag="package_cw")
         self.load_package()
 

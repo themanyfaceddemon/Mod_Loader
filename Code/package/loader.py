@@ -234,8 +234,9 @@ class PackageLoader:
     @classmethod
     def _find_package_by_identifier(cls, identifier: str) -> Optional[Package]:
         for pkg in cls._active_packages:
-            if pkg.get_identifier() == identifier:
+            if pkg.identifier == identifier:
                 return pkg
+
         return None
 
     @classmethod
