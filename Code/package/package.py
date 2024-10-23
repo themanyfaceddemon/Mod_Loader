@@ -51,7 +51,7 @@ class Package:
         if not dependency_file.exists():
             return None
 
-        tree = ET.parse(dependency_file)
+        tree = ET.parse(str(dependency_file))
         root = tree.getroot()
 
         self._parse_ignore_checks(root)

@@ -27,24 +27,27 @@ class PackageLoader:
         file_path = AppGlobalsAndConfig.get_data_root() / "internal_dependencies.xml"
         try:
             cls._process_internal_dependencies(file_path)
+
         except FileNotFoundError:
             logger.error(f"Dependency file {file_path} not found.")
 
     @classmethod
     def _process_internal_dependencies(cls, file_path: Path) -> None:
-        tree = ET.parse(file_path)
+        tree = ET.parse(str(file_path))
         root = tree.getroot()
-        dependencies = root.findall("internal_dependencies")
+
+        dependencies = root.findall("dependency")
 
         for dep in dependencies:
             steam_id = dep.get("steamID")
             if not steam_id:
                 continue
 
-            dep_dict: Dict[str, Dict[str, Dict[str, str]]] = {}
+            dep_dict: Dict[str, Dict[str, str]] = {}
             for dep_type in ["patch", "requirement", "optional", "conflict"]:
-                dep_dict[dep_type] = cls._parse_internal_dependency(dep, dep_type)
-            cls._internal_dependency_library[steam_id] = dep_dict
+                dep_dict[dep_type] = cls._parse_internal_dependency(dep, dep_type)  # type: ignore
+
+            cls._internal_dependency_library[steam_id] = dep_dict  # type: ignore
 
     @classmethod
     def _parse_internal_dependency(
@@ -77,7 +80,7 @@ class PackageLoader:
 
     @classmethod
     def save(cls, file_path: Path) -> None:
-        tree = ET.parse(file_path)
+        tree = ET.parse(str(file_path))
         root = tree.getroot()
 
         content_packages = root.find("contentpackages")
@@ -112,7 +115,7 @@ class PackageLoader:
         if not filelist_path.exists():
             raise FileNotFoundError(f"File {filelist_path} not found.")
 
-        tree = ET.parse(filelist_path)
+        tree = ET.parse(str(filelist_path))
         root = tree.getroot()
 
         if root.tag != "contentpackage":
@@ -130,7 +133,7 @@ class PackageLoader:
 
     @classmethod
     def _process_xml(cls, file_path: Path) -> None:
-        tree = ET.parse(file_path)
+        tree = ET.parse(str(file_path))
         root = tree.getroot()
 
         content_packages = root.find("contentpackages")
@@ -172,7 +175,6 @@ class PackageLoader:
             sorted_packages = cls._topological_sort(dependency_graph)
         except ValueError as e:
             logger.error(e)
-            # Сортируем пакеты алфавитно по имени при ошибке
             sorted_packages = sorted(cls._active_packages, key=lambda pkg: pkg.name)
 
         if always_first_package:
@@ -202,7 +204,7 @@ class PackageLoader:
         for package in cls._active_packages:
             package_dependencies = package.dependencies or {}
 
-            if not package_dependencies and package.steamID:
+            if package_dependencies == {} and package.steamID:
                 package_dependencies = cls._internal_dependency_library.get(
                     package.steamID, {}
                 )
@@ -258,7 +260,7 @@ class PackageLoader:
                     visit(neighbor)
                 temp_marks.remove(node)
                 visited.add(node)
-                sorted_packages.append(node)
+                sorted_packages.insert(0, node)
 
         for node in nodes:
             if node not in visited:
