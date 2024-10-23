@@ -10,11 +10,13 @@ class Package:
     def __init__(
         self,
         name: str,
+        steamID: Optional[str],
         path: Union[str, Path],
         local: bool = False,
         order: Optional[int] = None,
     ) -> None:
         self.name: str = name
+        self.steamID: Optional[str] = steamID
         self.path: Path = Path(path)
         self.local: bool = local
         self.order: Optional[int] = order
