@@ -2,7 +2,6 @@ import logging
 import sys
 
 import dearpygui.dearpygui as dpg
-import dearpygui_extend as dpge
 from dearpygui_async import DearPyGuiAsync
 
 from Code.app_vars import AppGlobalsAndConfig
