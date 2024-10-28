@@ -1,7 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Literal, Optional, Set
 
 from .identifier import Identifier
+
+
+@dataclass
+class IdentifierConflict(Identifier):
+    message: str
+    level: Literal["warning", "error"]
 
 
 @dataclass
@@ -25,5 +31,6 @@ class MetaData:
     # dependencies
     patches: List[Identifier] = field(default_factory=list)
     requirements: List[Identifier] = field(default_factory=list)
-    optionals: List[Identifier] = field(default_factory=list)
-    conflicts: List[Identifier] = field(default_factory=list)
+    optionals_requirements: List[Identifier] = field(default_factory=list)
+    optionals_patches: List[Identifier] = field(default_factory=list)
+    conflicts: List[IdentifierConflict] = field(default_factory=list)

@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from Code.app_vars import AppGlobalsAndConfig
 
 from .identifier import Identifier
-from .metadata import MetaData
+from .metadata import MetaData, IdentifierConflict
 from .override_processor import OverrideProcessor
 
 logger = logging.getLogger("PackageParsing")
@@ -113,13 +113,20 @@ class Package:
         self.metadata.patches = self._process_dependencies_element(
             dependencies, "patch"
         )
+
         self.metadata.requirements = self._process_dependencies_element(
             dependencies, "requirement"
         )
-        self.metadata.optionals = self._process_dependencies_element(
-            dependencies, "optional"
+
+        self.metadata.optionals_requirements = self._process_dependencies_element(
+            dependencies, "optionalRequirement"
         )
-        self.metadata.conflicts = self._process_dependencies_element(
+
+        self.metadata.optionals_patches = self._process_dependencies_element(
+            dependencies, "optionalPatch"
+        )
+
+        self.metadata.conflicts = self._process_dependencies_conflict(
             dependencies, "conflict"
         )
 
@@ -146,6 +153,43 @@ class Package:
 
             result.append(
                 Identifier(element_name.strip(), steam_id, element.attrib.get("ID"))
+            )
+
+        return result
+
+    def _process_dependencies_conflict(
+        self, root: ET.Element, type: str
+    ) -> List[IdentifierConflict]:
+        result: List[IdentifierConflict] = []
+
+        for element in root.findall(type):
+            element_name = element.attrib.get("name")
+            if not element_name or not element_name.strip():
+                raise ValueError(
+                    f"Error while parsing dependencies.{type}"
+                    f"Path: {self.path}"
+                    f"Missing or empty name in element: {ET.tostring(element, encoding='utf-8')}"
+                )
+
+            element_steam_id = element.attrib.get("steamID")
+            steam_id = (
+                int(element_steam_id)
+                if element_steam_id and element_steam_id.isdecimal()
+                else None
+            )
+            level = element.attrib.get("level", "error")
+            if level not in {"warning", "error"}:
+                logger.error(("Error in conflict element\n" f"|Path: {self.path}"))
+                level = "error"
+
+            result.append(
+                IdentifierConflict(
+                    element_name.strip(),
+                    steam_id,
+                    element.attrib.get("ID"),
+                    element.attrib.get("message", "Incompatible modifications"),
+                    level,  # type: ignore
+                )
             )
 
         return result

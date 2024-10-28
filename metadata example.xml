@@ -29,17 +29,61 @@
     </meta>
 
     <dependencies>
-        <!-- steamID and ID - OPTIONAL!!! -->
-        <!-- Mods that must load AFTER your mod. Your mod will override their content. -->
+        <!--
+            Patch: Mods that must load AFTER your mod.
+            Your mod will override their content in case of conflict.
+
+            FIELDS:
+                name - Required (the name of the mod in filelist.xml)
+                steamID - Optional (the unique Steam identifier)
+                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
+        -->
         <patch name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
 
-        <!-- Mods that must load BEFORE your mod because they rely on its content. -->
+        <!--
+            Requirement: Mods that must load BEFORE your mod because they provide essential content required by your mod.
+
+            FIELDS:
+                name - Required (the name of the mod in filelist.xml)
+                steamID - Optional (the unique Steam identifier)
+                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
+        -->
         <requirement name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
 
-        <!-- Optional mods. These are compatible but not required for your mod to work. -->
-        <optional name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
+        <!--
+            Optional Requirement: Mods that are compatible with your mod but not required.
+            These mods can enhance functionality if present, but are not mandatory.
 
-        <!-- Mods that are incompatible with your mod. -->
-        <conflict name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
+            FIELDS:
+                name - Required (the name of the mod in filelist.xml)
+                steamID - Optional (the unique Steam identifier)
+                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
+        -->
+        <optionalRequirement name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
+
+        <!--
+            Optional Patch: Similar to an optional requirement but will be overridden by your mod if present.
+            These mods can provide additional features without affecting the core functionality of your mod.
+
+            FIELDS:
+                name - Required (the name of the mod in filelist.xml)
+                steamID - Optional (the unique Steam identifier)
+                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
+        -->
+        <optionalPatch name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
+
+        <!--
+            Conflict: Mods that are incompatible with your mod.
+            If present, this will trigger a conflict warning or error for the user.
+            Optional message and level attributes allow specifying details for the conflict.
+
+            FIELDS:
+                name - Required (the name of the conflicting mod in filelist.xml)
+                steamID - Optional (the unique Steam identifier)
+                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
+                message - Optional, default="Incompatible modifications"
+                level - Optional, either "warning" or "error", default="error"
+        -->
+        <conflict name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" message="Conflict detected" level="warning" />
     </dependencies>
 </metadata>
