@@ -5,7 +5,6 @@ from pathlib import Path
 from Code.app_vars import AppGlobalsAndConfig
 from Code.gui.client_app import App
 from Code.loc import Localization as loc
-from Code.package import PackageLoader
 
 
 class FixedWidthFormatter(logging.Formatter):
@@ -16,7 +15,6 @@ class FixedWidthFormatter(logging.Formatter):
 
 def init_classes() -> None:
     AppGlobalsAndConfig.init()
-    PackageLoader.init()
 
 
 def main() -> None:

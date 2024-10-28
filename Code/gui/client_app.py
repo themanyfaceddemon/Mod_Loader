@@ -1,10 +1,12 @@
 import logging
+from pathlib import Path
 import sys
 
 import dearpygui.dearpygui as dpg
 from dearpygui_async import DearPyGuiAsync
 
 from Code.loc import Localization as loc
+from Code.package import Package
 
 from .fonts_setup import FontManager
 
@@ -36,7 +38,10 @@ class App:
         )
 
     def create_windows(self):
-        pass
+        for path in Path(
+            "G:\\Programs\\Steam\\steamapps\\workshop\\content\\602960"
+        ).iterdir():  # DEBUG
+            Package(path)
 
     @classmethod
     def run(cls) -> None:
