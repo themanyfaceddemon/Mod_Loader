@@ -10,13 +10,13 @@ class Identifier:
 
     @property
     def id(self) -> Union[str, int]:
-        return self.package_id or self.steam_id or self.name
+        return self.steam_id or self.package_id or self.name
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Identifier):
             return (
-                (self.package_id == other.package_id)
-                or (self.steam_id == other.steam_id)
+                (self.steam_id == other.steam_id)
+                or (self.package_id == other.package_id)
                 or (self.name == other.name)
             )
 
