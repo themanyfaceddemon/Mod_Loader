@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from Code.app_vars import AppGlobalsAndConfig
 
 from .identifier import Identifier
-from .metadata import MetaData, IdentifierConflict
+from .metadata import IdentifierConflict, MetaData
 from .override_processor import OverrideProcessor
 
 logger = logging.getLogger("PackageParsing")
