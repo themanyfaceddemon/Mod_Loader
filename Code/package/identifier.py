@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional
 
 
 @dataclass
@@ -9,8 +9,8 @@ class Identifier:
     package_id: Optional[str]
 
     @property
-    def id(self) -> Union[str, int]:
-        return self.steam_id or self.package_id or self.name
+    def id(self) -> str:
+        return str(self.steam_id) or self.package_id or self.name
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Identifier):
