@@ -1,5 +1,6 @@
-from typing import Dict, List, Tuple, Optional
 from collections import defaultdict, deque
+from typing import Dict, List, Optional, Tuple
+
 from .identifier import Identifier
 from .metadata import IdentifierConflict, MetaData
 from .package import Package
@@ -112,13 +113,29 @@ class ModLoader:
         return final_sorted_packages
 
     @classmethod
+    def _process_conflicts(cls) -> None:
+        active_ids = {pkg.identifier.id for pkg in cls.active_mods}
+
+        for pkg in cls.active_mods:
+            for conflict in pkg.metadata.conflicts:
+                if conflict.id in active_ids:
+                    if conflict.level == "error":
+                        pkg.metadata.errors.append(conflict.message)
+
+                    elif conflict.level == "warning":
+                        pkg.metadata.warnings.append(conflict.message)
+
+    @classmethod
     def sort(cls) -> None:
         cls.active_mods = cls._sort_active_mods_by_load_order()
         cls._add_dependencies_from_inactive()
         graph, indegree = cls._build_dependency_graph()
         cls.active_mods = cls._topological_sort(graph, indegree)
+
         for index, mod in enumerate(cls.active_mods):
             mod.metadata.load_order = index + 1
+
+        cls._process_conflicts()
 
     @classmethod
     def add_to_active(cls, package: Package, position: Optional[int] = None) -> None:
