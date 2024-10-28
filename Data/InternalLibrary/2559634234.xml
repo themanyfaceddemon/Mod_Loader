@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <settings>
+        <setting name="IgnoreLUACheck" value="true" />
+        <setting name="IgnoreCSDLLCheck" value="true" />
+        <setting name="DisableCSDLLCheck" value="true" />
+    </settings>
+
+    <meta>
+        <author>Evil Factory</author>
+        <id>EvilFactory.LuaForBarotrauma</id>
+    </meta>
+</metadata>

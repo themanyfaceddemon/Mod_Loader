@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional, Union
 
+from Code.app_vars import AppGlobalsAndConfig
+
 from .identifier import Identifier
 from .metadata import MetaData
 from .override_processor import OverrideProcessor
@@ -61,7 +63,7 @@ class Package:
     def _parse_metadata(self) -> None:
         metadata_path = self.path / "metadata.xml"
         if not metadata_path.exists():
-            self._load_default_metadata_settings()
+            self._load_default_metadata_from_internal_library()
             return
 
         tree = ET.parse(str(metadata_path))
@@ -164,3 +166,22 @@ class Package:
         self.metadata.settings["IgnoreLUACheck"] = False
         self.metadata.settings["IgnoreCSDLLCheck"] = False
         self.metadata.settings["DisableCSDLLCheck"] = False
+
+    def _load_default_metadata_from_internal_library(self) -> None:
+        if self.identifier.steam_id is None:
+            self._load_default_metadata_settings()
+            return
+
+        internal_library_meta_path = (
+            AppGlobalsAndConfig.get_data_root()
+            / f"InternalLibrary/{self.identifier.steam_id}.xml"
+        )
+        if not internal_library_meta_path.exists():
+            self._load_default_metadata_settings()
+            return
+
+        tree = ET.parse(str(internal_library_meta_path))
+        root = tree.getroot()
+        self._parse_settings(root.find("settings"))
+        self._parse_meta(root.find("meta"))
+        self._parse_dependencies(root.find("dependencies"))

@@ -41,7 +41,8 @@ class App:
         for path in Path(
             "G:\\Programs\\Steam\\steamapps\\workshop\\content\\602960"
         ).iterdir():  # DEBUG
-            Package(path)
+            obj = Package(path)
+            print(f"ID: {obj.identifier.id}\n" f"| Errors: {obj.metadata.errors}")
 
     @classmethod
     def run(cls) -> None:
