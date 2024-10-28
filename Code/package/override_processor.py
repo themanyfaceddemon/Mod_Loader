@@ -1,7 +1,7 @@
 import logging
-from typing import List, Set
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import List, Set
 
 from .metadata import MetaData
 
@@ -229,5 +229,80 @@ class OverrideProcessor:
 
         for corpses in element:
             result.add(f"Corpse.{corpses.get('identifier')}")
+
+        return result
+
+    @staticmethod
+    def _parse_upgrademodules(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for upgrade_module in element:
+            result.add(f"UpgradeModule.{upgrade_module.get('identifier')}")
+
+        return result
+
+    @staticmethod
+    def _parse_wreckaiconfig(element: ET.Element) -> Set[str]:
+        return {"WreckAIConfig"}
+
+    @staticmethod
+    def _parse_sounds(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for sound in element:
+            result.add(f"Sound.{sound.tag}")
+
+        return result
+
+    @staticmethod
+    def _parse_factions(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for fraction in element:
+            result.add(f"Faction.{fraction.get('identifier')}")
+
+        return result
+
+    @staticmethod
+    def _parse_npcsets(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for npcset in element:
+            result.add(f"Npcset.{npcset.get('identifier')}")
+
+        return result
+
+    @staticmethod
+    def _parse_locationtypes(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for location_type in element:
+            result.add(
+                f"Locationtype.{location_type.tag}.{location_type.get('identifier')}"
+            )
+
+        return result
+
+    @staticmethod
+    def _parse_mapgenerationparameters(element: ET.Element) -> Set[str]:
+        return {"MapGenerationParameters"}
+
+    @staticmethod
+    def _parse_outpostgenerationparameters(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for outpost_config in element:
+            result.add(f"OutpostConfig.{outpost_config.get('identifier')}")
+
+        return result
+
+    @staticmethod
+    def _parse_levelgenerationparameters(element: ET.Element) -> Set[str]:
+        result = set()
+
+        for levl_gen_param in element:
+            result.add(
+                f"LevelGenerationParameter.{levl_gen_param.tag}.{levl_gen_param.get('identifier')}"
+            )
 
         return result

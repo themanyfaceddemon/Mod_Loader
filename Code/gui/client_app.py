@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 from dearpygui_async import DearPyGuiAsync
