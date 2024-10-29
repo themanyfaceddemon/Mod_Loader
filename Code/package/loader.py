@@ -129,35 +129,62 @@ class ModLoader:
         install_lua = AppGlobalsAndConfig.get("has_lua", False)
         install_cs = AppGlobalsAndConfig.get("enable_cs_scripting", False)
         active_ids = {pkg.identifier.id for pkg in cls.active_mods}
+        overrides_tracking = defaultdict(list)
 
         for pkg in cls.active_mods + cls.inactive_mods:
             pkg.metadata.errors.clear()
             pkg.metadata.warnings.clear()
             pkg.parse_metadata()
+            cls._process_conflicts(pkg, active_ids)
+            cls._check_cs_dll_usage(pkg, install_cs)
+            cls._check_lua_usage(pkg, install_lua)
 
-            for conflict in pkg.metadata.conflicts:
-                if conflict.id in active_ids:
-                    if conflict.level == "error":
-                        pkg.metadata.errors.append(conflict.message)
+        for pkg in cls.active_mods:
+            if pkg.metadata.overrides:
+                for override_id in pkg.metadata.overrides:
+                    if overrides_tracking[override_id]:
+                        warning_message = (
+                            f"Identifier '{override_id}' is overridden by: "
+                            + ", ".join(
+                                mod.identifier.name
+                                for mod in overrides_tracking[override_id]
+                            )
+                        )
+                        if warning_message not in pkg.metadata.warnings:
+                            pkg.metadata.warnings.append(warning_message)
 
-                    elif conflict.level == "warning":
-                        pkg.metadata.warnings.append(conflict.message)
+                    overrides_tracking[override_id].append(pkg)
 
-            if pkg.metadata.has_cs or pkg.metadata.has_dll:
-                if not install_cs and not pkg.metadata.settings.get(
-                    "DisableCSDLLCheck", False
-                ):
-                    pkg.metadata.errors.append(
-                        "The mod uses .dll or .cs, but you do not have the flag for using the cs script set"
-                    )
+    @staticmethod
+    def _process_conflicts(pkg, active_ids):
+        for conflict in pkg.metadata.conflicts:
+            if conflict.id in active_ids:
+                if conflict.level == "error":
+                    pkg.metadata.errors.append(conflict.message)
+                elif conflict.level == "warning":
+                    pkg.metadata.warnings.append(conflict.message)
 
-            if pkg.metadata.has_lua:
-                if not install_lua and not pkg.metadata.settings.get(
-                    "IgnoreLUACheck", False
-                ):
-                    pkg.metadata.errors.append(
-                        "The mod uses lua, but you don't have lua installed."
-                    )
+    @staticmethod
+    def _check_cs_dll_usage(pkg, install_cs):
+        if (
+            (pkg.metadata.has_cs or pkg.metadata.has_dll)
+            and not install_cs
+            and not pkg.metadata.settings.get("DisableCSDLLCheck", False)
+        ):
+            pkg.metadata.errors.append(
+                "The mod uses .dll or .cs, but you do not have the flag for using the cs script set"
+            )
+
+    @staticmethod
+    def _check_lua_usage(pkg, install_lua):
+        if (
+            pkg.metadata.has_lua
+            and not install_lua
+            and not pkg.metadata.settings.get("IgnoreLUACheck", False)
+        ):
+            pkg.metadata.errors.append(
+                "The mod uses lua, but you don't have lua installed."
+            )
 
     @classmethod
     def sort(cls) -> None:

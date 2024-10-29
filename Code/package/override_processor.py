@@ -215,13 +215,13 @@ class OverrideProcessor:
         result = set()
 
         for talent_tree in element:
-            result.add(f"TalentTree.{talent_tree.get('identifier')}")
+            result.add(f"TalentTree.{talent_tree.get('jobidentifier')}")
 
         return result
 
     @staticmethod
     def _parse_talenttree(element: ET.Element) -> Set[str]:
-        return {f"TalentTree.{element.get('identifier')}"}
+        return {f"TalentTree.{element.get('jobidentifier')}"}
 
     @staticmethod
     def _parse_corpses(element: ET.Element) -> Set[str]:

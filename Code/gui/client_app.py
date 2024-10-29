@@ -51,7 +51,6 @@ class App:
 
             dpg.add_text("Mods with errors: 0", tag="error_count_text")
             dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
-            dpg.add_button(label="close_app", callback=lambda: App.stop())
             dpg.add_separator()
             with dpg.group(horizontal=True):
                 with dpg.group():
@@ -148,14 +147,29 @@ class App:
                     dpg.add_text(mod.metadata.mod_version)
 
                 if mod.metadata.errors:
-                    dpg.add_text("Erros:", color=[255, 0, 0])
-                    for error in mod.metadata.errors:
+                    dpg.add_text("Errors:", color=[255, 0, 0])
+                    for error in mod.metadata.errors[:3]:
                         dpg.add_text(error, wrap=0, bullet=True)
 
+                    if len(mod.metadata.errors) > 3:
+                        dpg.add_text(
+                            "See full details...", color=[255, 255, 0], bullet=True
+                        )
+
                 if mod.metadata.warnings:
-                    dpg.add_text("Warning:", color=[255, 255, 0])
-                    for warning in mod.metadata.warnings:
+                    dpg.add_text("Warnings:", color=[255, 255, 0])
+                    for warning in mod.metadata.warnings[:3]:
                         dpg.add_text(warning, wrap=0, bullet=True)
+
+                    if len(mod.metadata.warnings) > 3:
+                        dpg.add_text(
+                            "See full details...", color=[255, 255, 0], bullet=True
+                        )
+
+                dpg.add_button(
+                    label="Show full details",
+                    callback=lambda: self.show_details_window(mod),
+                )
 
             with dpg.drag_payload(
                 parent=mod_name_tag,
@@ -164,16 +178,75 @@ class App:
             ):
                 dpg.add_text(mod.identifier.name)
 
-            if mod.metadata.warnings:
-                dpg.configure_item(mod_name_tag, color=[255, 255, 0])
-
             if mod.metadata.errors:
                 dpg.configure_item(mod_name_tag, color=[255, 0, 0])
-
-            if not mod.metadata.warnings and not mod.metadata.errors:
+            elif mod.metadata.warnings:
+                dpg.configure_item(mod_name_tag, color=[255, 255, 0])
+            else:
                 dpg.configure_item(mod_name_tag, color=[255, 255, 255])
 
             dpg.add_separator()
+
+    def show_details_window(self, mod: Package):
+        title = f"MOD: {mod.identifier.name} - Full Details"
+        window_tag = f"{mod.identifier.id}_full_details_window"
+
+        if dpg.does_item_exist(window_tag):
+            dpg.delete_item(window_tag)
+
+        with dpg.window(
+            label=title,
+            width=400,
+            height=300,
+            tag=window_tag,
+            on_close=lambda: dpg.delete_item(window_tag),
+        ):
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Mod name:", color=[0, 102, 204])
+                        dpg.add_text(mod.identifier.name)
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Author:", color=[0, 102, 204])
+                        dpg.add_text(mod.metadata.meta.get("author", "Unknown"))
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("License:", color=[169, 169, 169])
+                        dpg.add_text(
+                            mod.metadata.meta.get("license", "Not specified"),
+                            color=[169, 169, 169],
+                        )
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Is local mod:")
+                        dpg.add_text("yes" if mod.metadata.local else "no")
+
+                with dpg.group():
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("ModLoader ID:", color=[34, 139, 34])
+                        dpg.add_text(mod.identifier.id)
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Game version:", color=[34, 139, 34])
+                        dpg.add_text(mod.metadata.game_version)
+
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Mod version:", color=[34, 139, 34])
+                        dpg.add_text(mod.metadata.mod_version)
+            dpg.add_separator()
+
+            if mod.metadata.errors:
+                dpg.add_text("Errors:", color=[255, 0, 0])
+                for error in mod.metadata.errors:
+                    dpg.add_text(error, wrap=0, bullet=True)
+                dpg.add_separator()
+
+            if mod.metadata.warnings:
+                dpg.add_text("Warnings:", color=[255, 255, 0])
+                for warning in mod.metadata.warnings:
+                    dpg.add_text(warning, wrap=0, bullet=True)
+                dpg.add_separator()
 
     def on_mod_dropped(self, sender, app_data, user_data):
         drag_data = app_data
