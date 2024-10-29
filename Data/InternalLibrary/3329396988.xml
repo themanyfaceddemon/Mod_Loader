@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <meta>
+        <author>Evil Factory</author>
+        <id>EvilFactory.NetworkTweaks</id>
+    </meta>
+
+    <dependencies>
+        <requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+    </dependencies>
+</metadata>
