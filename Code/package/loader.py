@@ -125,7 +125,7 @@ class ModLoader:
         return final_sorted_packages
 
     @classmethod
-    def _process_conflicts(cls) -> None:
+    def process_conflicts(cls) -> None:
         active_ids = {pkg.identifier.id for pkg in cls.active_mods}
 
         for pkg in cls.active_mods:
@@ -147,10 +147,13 @@ class ModLoader:
         for index, mod in enumerate(cls.active_mods):
             mod.metadata.load_order = index + 1
 
-        cls._process_conflicts()
+        cls.process_conflicts()
 
     @classmethod
     def add_to_active(cls, package: Package, position: Optional[int] = None) -> None:
+        if cls._find_package_by_id(package.identifier.id):
+            return
+
         if position is not None and 0 <= position < len(cls.active_mods):
             cls.active_mods.insert(position, package)
         else:
@@ -176,6 +179,9 @@ class ModLoader:
 
     @classmethod
     def add_to_inactive(cls, package: Package) -> None:
+        if cls._find_package_by_id(package.identifier.id):
+            return
+
         if package not in cls.inactive_mods:
             cls.inactive_mods.append(package)
 
@@ -258,6 +264,102 @@ class ModLoader:
         for index, mod in enumerate(cls.active_mods):
             mod.metadata.load_order = index + 1
 
+        return True
+
+    @classmethod
+    def swap_active_mods(cls, package_id: str, target_package_id: str) -> bool:
+        index1 = next(
+            (
+                i
+                for i, pkg in enumerate(cls.active_mods)
+                if pkg.identifier.id == package_id
+            ),
+            None,
+        )
+        index2 = next(
+            (
+                i
+                for i, pkg in enumerate(cls.active_mods)
+                if pkg.identifier.id == target_package_id
+            ),
+            None,
+        )
+
+        if index1 is None or index2 is None:
+            logger.warning(
+                f"Cannot swap active mods: '{package_id}' or '{target_package_id}' not found."
+            )
+            return False
+
+        cls.active_mods[index1], cls.active_mods[index2] = (
+            cls.active_mods[index2],
+            cls.active_mods[index1],
+        )
+        return True
+
+    @classmethod
+    def swap_inactive_mods(cls, package_id: str, target_package_id: str) -> bool:
+        index1 = next(
+            (
+                i
+                for i, pkg in enumerate(cls.inactive_mods)
+                if pkg.identifier.id == package_id
+            ),
+            None,
+        )
+        index2 = next(
+            (
+                i
+                for i, pkg in enumerate(cls.inactive_mods)
+                if pkg.identifier.id == target_package_id
+            ),
+            None,
+        )
+
+        if index1 is None or index2 is None:
+            logger.warning(
+                f"Cannot swap inactive mods: '{package_id}' or '{target_package_id}' not found."
+            )
+            return False
+
+        cls.inactive_mods[index1], cls.inactive_mods[index2] = (
+            cls.inactive_mods[index2],
+            cls.inactive_mods[index1],
+        )
+        return True
+
+    @classmethod
+    def move_active_mod_to_end(cls, package_id: str) -> bool:
+        current_index = next(
+            (
+                i
+                for i, pkg in enumerate(cls.active_mods)
+                if pkg.identifier.id == package_id
+            ),
+            None,
+        )
+        if current_index is None:
+            return False
+
+        mod = cls.active_mods.pop(current_index)
+        cls.active_mods.append(mod)
+        return True
+
+    @classmethod
+    def move_inactive_mod_to_end(cls, package_id: str) -> bool:
+        current_index = next(
+            (
+                i
+                for i, pkg in enumerate(cls.inactive_mods)
+                if pkg.identifier.id == package_id
+            ),
+            None,
+        )
+        if current_index is None:
+            return False
+
+        mod = cls.inactive_mods.pop(current_index)
+        cls.inactive_mods.append(mod)
         return True
 
     @classmethod
@@ -361,6 +463,9 @@ class ModLoader:
 
     @classmethod
     def save_mods(cls) -> None:
+        unique_mods = {pkg.identifier.id: pkg for pkg in cls.active_mods}.values()
+        cls.active_mods = list(unique_mods)
+
         game_path = cls._get_game_path()
         if game_path is None:
             return
@@ -387,7 +492,15 @@ class ModLoader:
             comment = ET.Comment(f"{mod_name}")
             regular_packages.append(comment)
             pack_element = ET.SubElement(regular_packages, "package")
-            pack_element.set("path", str(mod_path / "filelist.xml"))
+            if mod.metadata.local:
+                mod_path = str(
+                    Path(*mod_path.parts[mod_path.parts.index("LocalMods") :])
+                    / "filelist.xml"
+                )
+            else:
+                mod_path = str(mod_path / "filelist.xml")
+
+            pack_element.set("path", mod_path)
 
         cls._save_formatted_xml(tree, config_player_path)
 
@@ -396,7 +509,6 @@ class ModLoader:
         regular_packages = content_packages.find("regularpackages")
         if regular_packages is None:
             regular_packages = ET.SubElement(content_packages, "regularpackages")
-
         else:
             for elem in list(regular_packages):
                 regular_packages.remove(elem)
