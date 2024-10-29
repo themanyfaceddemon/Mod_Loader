@@ -19,7 +19,7 @@ class ModLoader:
 
     @classmethod
     def init(cls) -> None:
-        cls.load_mods()
+        cls.load()
         atexit.register(cls.save_mods)
 
     @classmethod
@@ -125,10 +125,16 @@ class ModLoader:
         return final_sorted_packages
 
     @classmethod
-    def process_conflicts(cls) -> None:
+    def process_errors(cls) -> None:
+        install_lua = AppGlobalsAndConfig.get("has_lua", False)
+        install_cs = AppGlobalsAndConfig.get("enable_cs_scripting", False)
         active_ids = {pkg.identifier.id for pkg in cls.active_mods}
 
-        for pkg in cls.active_mods:
+        for pkg in cls.active_mods + cls.inactive_mods:
+            pkg.metadata.errors.clear()
+            pkg.metadata.warnings.clear()
+            pkg.parse_metadata()
+
             for conflict in pkg.metadata.conflicts:
                 if conflict.id in active_ids:
                     if conflict.level == "error":
@@ -136,6 +142,22 @@ class ModLoader:
 
                     elif conflict.level == "warning":
                         pkg.metadata.warnings.append(conflict.message)
+
+            if pkg.metadata.has_cs or pkg.metadata.has_dll:
+                if not install_cs and not pkg.metadata.settings.get(
+                    "DisableCSDLLCheck", False
+                ):
+                    pkg.metadata.errors.append(
+                        "The mod uses .dll or .cs, but you do not have the flag for using the cs script set"
+                    )
+
+            if pkg.metadata.has_lua:
+                if not install_lua and not pkg.metadata.settings.get(
+                    "IgnoreLUACheck", False
+                ):
+                    pkg.metadata.errors.append(
+                        "The mod uses lua, but you don't have lua installed."
+                    )
 
     @classmethod
     def sort(cls) -> None:
@@ -147,7 +169,7 @@ class ModLoader:
         for index, mod in enumerate(cls.active_mods):
             mod.metadata.load_order = index + 1
 
-        cls.process_conflicts()
+        cls.process_errors()
 
     @classmethod
     def add_to_active(cls, package: Package, position: Optional[int] = None) -> None:
@@ -363,7 +385,7 @@ class ModLoader:
         return True
 
     @classmethod
-    def load_mods(cls) -> None:
+    def load(cls) -> None:
         game_path = cls._get_game_path()
         if game_path is None:
             return
@@ -395,6 +417,25 @@ class ModLoader:
         install_mod_path = AppGlobalsAndConfig.get("barotrauma_install_mod_dir")
         if install_mod_path:
             cls._load_installed_mods(Path(install_mod_path))
+
+        barotrauma_deps_json = game_path / "Barotrauma.deps.json"
+
+        with open(barotrauma_deps_json, "r", encoding="utf-8") as file:
+            content = file.read()
+            if "Luatrauma" in content:
+                AppGlobalsAndConfig.set("has_lua", True)
+            else:
+                AppGlobalsAndConfig.set("has_lua", False)
+
+        lua_config = game_path / "LuaCsSetupConfig.xml"
+        if not lua_config.exists():
+            AppGlobalsAndConfig.set("enable_cs_scripting", False)
+            return
+
+        tree = ET.parse(str(lua_config))
+        root = tree.getroot()
+        enable_cs_scripting = root.attrib.get("EnableCsScripting", "false").lower()
+        AppGlobalsAndConfig.set("enable_cs_scripting", enable_cs_scripting == "true")
 
     @classmethod
     def _get_game_path(cls) -> Optional[Path]:

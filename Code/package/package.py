@@ -21,7 +21,7 @@ class Package:
 
     def _init_setup(self) -> None:
         self._parse_filelist()
-        self._parse_metadata()
+        self.parse_metadata()
 
         self.metadata.has_lua = self._check_has_file("lua")
         self.metadata.has_cs = self._check_has_file("cs")
@@ -60,7 +60,7 @@ class Package:
         self.metadata.mod_version = mod_version
         self.metadata.game_version = game_version
 
-    def _parse_metadata(self) -> None:
+    def parse_metadata(self) -> None:
         metadata_path = self.path / "metadata.xml"
         if not metadata_path.exists():
             self._load_default_metadata_from_internal_library()
@@ -208,7 +208,6 @@ class Package:
 
     def _load_default_metadata_settings(self) -> None:
         self.metadata.settings["IgnoreLUACheck"] = False
-        self.metadata.settings["IgnoreCSDLLCheck"] = False
         self.metadata.settings["DisableCSDLLCheck"] = False
 
     def _load_default_metadata_from_internal_library(self) -> None:

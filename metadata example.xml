@@ -4,9 +4,6 @@
         <!-- If set to "true", the mod loader will ignore the presence of .lua files when sorting. Default - false -->
         <setting name="IgnoreLUACheck" value="false" />
 
-        <!-- If set to "true", the mod loader will ignore the presence of .cs or .dll files when sorting. Default - false -->
-        <setting name="IgnoreCSDLLCheck" value="false" />
-
         <!-- Disables CSScript checks on the client. Default - false -->
         <setting name="DisableCSDLLCheck" value="false" />
     </settings>

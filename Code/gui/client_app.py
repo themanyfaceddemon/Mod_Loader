@@ -38,8 +38,8 @@ class App:
         )
 
     def create_windows(self):
-        ModLoader.load_mods()
-        ModLoader.process_conflicts()
+        ModLoader.load()
+        ModLoader.process_errors()
 
         with dpg.window(
             no_move=True,
@@ -48,6 +48,11 @@ class App:
             tag="main_window",
         ):
             dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
+
+            dpg.add_text("Mods with errors: 0", tag="error_count_text")
+            dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+            dpg.add_button(label="close_app", callback=lambda: App.stop())
+            dpg.add_separator()
             with dpg.group(horizontal=True):
                 with dpg.group():
                     dpg.add_text("Active Mods")
@@ -94,7 +99,7 @@ class App:
         self.render_mods()
 
     def render_mods(self):
-        ModLoader.process_conflicts()
+        ModLoader.process_errors()
         dpg.delete_item("active_mods_child", children_only=True)
         for mod in ModLoader.active_mods:
             if self.active_mod_search_text in mod.identifier.name.lower():
@@ -104,6 +109,10 @@ class App:
         for mod in ModLoader.inactive_mods:
             if self.inactive_mod_search_text in mod.identifier.name.lower():
                 self.add_movable_mod(mod, "inactive", "inactive_mods_child")
+
+        error_count, warning_count = self.count_mods_with_issues()
+        dpg.set_value("error_count_text", f"Mods with errors: {error_count}")
+        dpg.set_value("warning_count_text", f"Mods with warnings: {warning_count}")
 
     def add_movable_mod(self, mod: Package, status: str, parent):
         mod_group_tag = f"{mod.identifier.id}_{status}_group"
@@ -160,6 +169,9 @@ class App:
 
             if mod.metadata.errors:
                 dpg.configure_item(mod_name_tag, color=[255, 0, 0])
+
+            if not mod.metadata.warnings and not mod.metadata.errors:
+                dpg.configure_item(mod_name_tag, color=[255, 255, 255])
 
             dpg.add_separator()
 
@@ -236,3 +248,15 @@ class App:
         dpg.configure_item("inactive_mods_child", width=(viewport_width / 2))
         dpg.configure_item("inactive_mod_search_tag", width=(viewport_width / 2))
         dpg_tools.center_window("main_window")
+
+    def count_mods_with_issues(self):
+        error_count = 0
+        warning_count = 0
+
+        for mod in ModLoader.active_mods:
+            if mod.metadata.errors:
+                error_count += 1
+            if mod.metadata.warnings:
+                warning_count += 1
+
+        return error_count, warning_count
