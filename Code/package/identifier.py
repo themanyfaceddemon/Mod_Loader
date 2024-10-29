@@ -10,7 +10,13 @@ class Identifier:
 
     @property
     def id(self) -> str:
-        return str(self.steam_id) or self.package_id or self.name
+        if self.steam_id:
+            return str(self.steam_id)
+
+        if self.package_id:
+            return self.package_id
+
+        return self.name
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Identifier):
@@ -29,7 +35,7 @@ class Identifier:
         return False
 
     def __str__(self) -> str:
-        return str(self.id)
+        return self.id
 
     def __repr__(self) -> str:
         return f"Identifier(name={self.name}, steam_id={self.steam_id}, package_id={self.package_id})"

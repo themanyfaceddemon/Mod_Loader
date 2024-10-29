@@ -14,6 +14,7 @@ class IdentifierConflict(Identifier):
 class MetaData:
     load_order: Optional[int] = None
 
+    local: bool = False
     mod_version: str = "0.0.0"
     game_version: str = "0.0.0"
 

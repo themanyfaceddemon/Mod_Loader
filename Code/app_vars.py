@@ -37,9 +37,9 @@ class AppGlobalsAndConfig:
         return cls._data_root
 
     @classmethod
-    def get_config(cls, key: str, default=None) -> Optional[Any]:
+    def get(cls, key: str, default=None) -> Optional[Any]:
         return cls.user_config.get(key, default)
 
     @classmethod
-    def set_config(cls, key: str, value: Any) -> None:
+    def set(cls, key: str, value: Any) -> None:
         cls.user_config[key] = value

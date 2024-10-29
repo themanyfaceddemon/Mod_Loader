@@ -1,14 +1,26 @@
+import atexit
+import logging
+import xml.etree.ElementTree as ET
 from collections import defaultdict, deque
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from xml.dom import minidom
 
-from .identifier import Identifier
-from .metadata import IdentifierConflict, MetaData
+from Code.app_vars import AppGlobalsAndConfig
+
 from .package import Package
+
+logger = logging.getLogger("ModLoader")
 
 
 class ModLoader:
     active_mods: List[Package] = []
     inactive_mods: List[Package] = []
+
+    @classmethod
+    def init(cls) -> None:
+        cls.load_mods()
+        atexit.register(cls.save_mods)
 
     @classmethod
     def _find_package_by_id(cls, package_id: str) -> Optional[Package]:
@@ -182,3 +194,225 @@ class ModLoader:
                 return pkg
 
         return None
+
+    @classmethod
+    def toggle_mod(cls, package_id: str) -> bool:
+        package = cls.find_in_active(package_id)
+        if package:
+            cls.remove_from_active(package_id)
+            cls.add_to_inactive(package)
+            return True
+
+        else:
+            package = cls.find_in_inactive(package_id)
+            if package:
+                cls.remove_from_inactive(package_id)
+                cls.add_to_active(package)
+                return True
+
+        return False
+
+    @classmethod
+    def activate_mod(cls, package_id: str) -> bool:
+        package = cls.find_in_inactive(package_id)
+        if package:
+            cls.remove_from_inactive(package_id)
+            cls.add_to_active(package)
+            return True
+
+        return False
+
+    @classmethod
+    def deactivate_mod(cls, package_id: str) -> bool:
+        package = cls.find_in_active(package_id)
+        if package:
+            cls.remove_from_active(package_id)
+            cls.add_to_inactive(package)
+            return True
+
+        return False
+
+    @classmethod
+    def move_active_mod(cls, package_id: str, new_position: int) -> bool:
+        if new_position < 0 or new_position >= len(cls.active_mods):
+            logger.error(
+                f"Invalid position {new_position}. Must be within the range of active mods."
+            )
+            return False
+
+        current_position = next(
+            (
+                i
+                for i, pkg in enumerate(cls.active_mods)
+                if pkg.identifier.id == package_id
+            ),
+            None,
+        )
+        if current_position is None:
+            logger.warning(f"Mod with id '{package_id}' not found in active mods.")
+            return False
+
+        mod = cls.active_mods.pop(current_position)
+        cls.active_mods.insert(new_position, mod)
+
+        for index, mod in enumerate(cls.active_mods):
+            mod.metadata.load_order = index + 1
+
+        return True
+
+    @classmethod
+    def load_mods(cls) -> None:
+        game_path = cls._get_game_path()
+        if game_path is None:
+            return
+
+        cls._load_local_mods(game_path)
+        config_player_path = game_path / "config_player.xml"
+        if not config_player_path.exists():
+            logger.error(
+                f"config_player.xml does not exist!\n| Path: {config_player_path}"
+            )
+            return
+
+        tree = ET.parse(str(config_player_path))
+        root = tree.getroot()
+        content_packages = root.find(".//contentpackages")
+        if content_packages is None:
+            logger.error("Invalid XML structure: <contentpackages> not found.")
+            return
+
+        regular_packages = content_packages.find("regularpackages")
+        if regular_packages is None:
+            logger.error(
+                "Invalid XML structure: <regularpackages> not found inside <contentpackages>."
+            )
+            return
+
+        cls._load_regular_packages(regular_packages, game_path)
+        cls._set_install_mod_dir(regular_packages, config_player_path)
+        install_mod_path = AppGlobalsAndConfig.get("barotrauma_install_mod_dir")
+        if install_mod_path:
+            cls._load_installed_mods(Path(install_mod_path))
+
+    @classmethod
+    def _get_game_path(cls) -> Optional[Path]:
+        game_path = AppGlobalsAndConfig.get("barotrauma_dir")
+        if game_path is None:
+            logger.error("Game path not set in AppGlobalsAndConfig.")
+            return None
+
+        return Path(game_path)
+
+    @classmethod
+    def _load_local_mods(cls, game_path: Path) -> None:
+        local_mods_path = game_path / "LocalMods"
+        if local_mods_path.exists():
+            for dir in local_mods_path.iterdir():
+                if dir.is_dir() and not dir.name.startswith("."):
+                    obj = Package(dir)
+                    obj.metadata.local = True
+                    cls.add_to_inactive(obj)
+
+    @classmethod
+    def _load_regular_packages(
+        cls, regular_packages: ET.Element, game_path: Path
+    ) -> None:
+        for pack_element in regular_packages:
+            pack_path = pack_element.attrib.get("path")
+            if pack_path is None:
+                logger.warning("Path for package not found!")
+                continue
+
+            if pack_path.startswith("LocalMods"):
+                pack_path = game_path / pack_path
+
+            pack_path = Path(pack_path).parent
+            obj = Package(pack_path)
+            if not cls.activate_mod(obj.identifier.id):
+                cls.add_to_active(obj)
+
+    @classmethod
+    def _set_install_mod_dir(
+        cls, regular_packages: ET.Element, config_player_path: Path
+    ) -> None:
+        if not AppGlobalsAndConfig.get("barotrauma_install_mod_dir"):
+            for pack_element in regular_packages:
+                pack_path = pack_element.attrib.get("path")
+                if pack_path and not pack_path.startswith("LocalMods"):
+                    AppGlobalsAndConfig.set(
+                        "barotrauma_install_mod_dir",
+                        str(Path(pack_path).parent.parent),
+                    )
+                    break
+
+    @classmethod
+    def _load_installed_mods(cls, install_mod_path: Path) -> None:
+        if install_mod_path.exists():
+            for mod_path in install_mod_path.iterdir():
+                if mod_path.is_dir():
+                    try:
+                        obj = Package(mod_path)
+                    except Exception as err:
+                        logger.error(f"Failed to load mod from {mod_path}: {err}")
+                        continue
+
+                    if not cls._find_package_by_id(obj.identifier.id):
+                        cls.add_to_inactive(obj)
+
+    @classmethod
+    def save_mods(cls) -> None:
+        game_path = cls._get_game_path()
+        if game_path is None:
+            return
+
+        config_player_path = game_path / "config_player.xml"
+        if not config_player_path.exists():
+            logger.error(
+                f"config_player.xml does not exist!\n| Path: {config_player_path}"
+            )
+            return
+
+        tree = ET.parse(str(config_player_path))
+        root = tree.getroot()
+        content_packages = root.find(".//contentpackages")
+        if content_packages is None:
+            logger.error("Invalid XML structure: <contentpackages> not found.")
+            return
+
+        regular_packages = cls._prepare_regular_packages(content_packages)
+
+        for mod in cls.active_mods:
+            mod_path = mod.path
+            mod_name = mod.identifier.name
+            comment = ET.Comment(f"{mod_name}")
+            regular_packages.append(comment)
+            pack_element = ET.SubElement(regular_packages, "package")
+            pack_element.set("path", str(mod_path / "filelist.xml"))
+
+        cls._save_formatted_xml(tree, config_player_path)
+
+    @classmethod
+    def _prepare_regular_packages(cls, content_packages: ET.Element) -> ET.Element:
+        regular_packages = content_packages.find("regularpackages")
+        if regular_packages is None:
+            regular_packages = ET.SubElement(content_packages, "regularpackages")
+
+        else:
+            for elem in list(regular_packages):
+                regular_packages.remove(elem)
+
+        return regular_packages
+
+    @classmethod
+    def _save_formatted_xml(
+        cls, tree: ET.ElementTree, config_player_path: Path
+    ) -> None:
+        rough_string = ET.tostring(tree.getroot(), "utf-8")
+        reparsed = minidom.parseString(rough_string)
+        pretty_xml_as_string = "\n".join(
+            [line for line in reparsed.toprettyxml().splitlines() if line.strip()]
+        )
+        with open(config_player_path, "w", encoding="utf-8") as f:
+            f.write(pretty_xml_as_string)
+
+        logger.info(f"Active mods saved to config_player.xml at {config_player_path}")

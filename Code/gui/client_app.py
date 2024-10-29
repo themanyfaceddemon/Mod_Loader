@@ -6,7 +6,7 @@ import dearpygui.dearpygui as dpg
 from dearpygui_async import DearPyGuiAsync
 
 from Code.loc import Localization as loc
-from Code.package import Package
+from Code.package import ModLoader, Package
 
 from .fonts_setup import FontManager
 
@@ -38,11 +38,25 @@ class App:
         )
 
     def create_windows(self):
-        for path in Path(
-            "G:\\Programs\\Steam\\steamapps\\workshop\\content\\602960"
-        ).iterdir():  # DEBUG
-            obj = Package(path)
-            print(f"ID: {obj.identifier.id}\n" f"| Errors: {obj.metadata.errors}")
+        ModLoader.load_mods()
+        ModLoader.sort()
+        ModLoader.save_mods()
+        return
+        with dpg.window(label="Main Window", no_background=True):
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    dpg.add_text("Active Mods")
+                    with dpg.child_window(tag="active_mods_child", width=300):
+                        for mod in ModLoader.active_mods:
+                            dpg.add_text(mod.identifier.name, wrap=0)
+                            dpg.add_text("---", color=[255, 0, 0, 255])
+
+                with dpg.group():
+                    dpg.add_text("Inactive Mods")
+                    with dpg.child_window(tag="inactive_mods_child", width=300):
+                        for mod in ModLoader.inactive_mods:
+                            dpg.add_text(mod.identifier.name, wrap=0)
+                            dpg.add_text("---", color=[255, 0, 0, 255])
 
     @classmethod
     def run(cls) -> None:

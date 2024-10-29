@@ -229,3 +229,27 @@ class Package:
         self._parse_settings(root.find("settings"))
         self._parse_meta(root.find("meta"))
         self._parse_dependencies(root.find("dependencies"))
+
+    def __str__(self) -> str:
+        return (
+            f"Path: {self.path}\n"
+            f"Identifier: {self.identifier}\n"
+            f"Metadata:\n"
+            f"  Load Order: {self.metadata.load_order}\n"
+            f"  Local: {self.metadata.local}\n"
+            f"  Mod Version: {self.metadata.mod_version}\n"
+            f"  Game Version: {self.metadata.game_version}\n"
+            f"  Settings: {self.metadata.settings}\n"
+            f"  Has DLL: {self.metadata.has_dll}\n"
+            f"  Has CS: {self.metadata.has_cs}\n"
+            f"  Has Lua: {self.metadata.has_lua}\n"
+            f"  Meta: {self.metadata.meta}\n"
+            f"  Warnings: {self.metadata.warnings}\n"
+            f"  Errors: {self.metadata.errors}\n"
+            f"  Overrides: {self.metadata.overrides}\n"
+            f"  Patches: {[str(patch) for patch in self.metadata.patches]}\n"
+            f"  Requirements: {[str(req) for req in self.metadata.requirements]}\n"
+            f"  Optional Requirements: {[str(opt_req) for opt_req in self.metadata.optionals_requirements]}\n"
+            f"  Optional Patches: {[str(opt_patch) for opt_patch in self.metadata.optionals_patches]}\n"
+            f"  Conflicts: {[str(conflict) for conflict in self.metadata.conflicts]}"
+        )

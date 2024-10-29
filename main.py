@@ -5,6 +5,7 @@ from pathlib import Path
 from Code.app_vars import AppGlobalsAndConfig
 from Code.gui.client_app import App
 from Code.loc import Localization as loc
+from Code.package import ModLoader
 
 
 class FixedWidthFormatter(logging.Formatter):
@@ -15,6 +16,7 @@ class FixedWidthFormatter(logging.Formatter):
 
 def init_classes() -> None:
     AppGlobalsAndConfig.init()
+    ModLoader.init()
 
 
 def main() -> None:
@@ -23,7 +25,7 @@ def main() -> None:
         Path(
             AppGlobalsAndConfig.get_data_root()
             / "localization"
-            / AppGlobalsAndConfig.get_config("lang", "eng")  # type: ignore
+            / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
         )
     )
 
