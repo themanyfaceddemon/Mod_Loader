@@ -120,21 +120,31 @@ class App:
 
             with dpg.popup(parent=mod_name_tag):
                 with dpg.group(horizontal=True):
-                    dpg.add_text("Author: ")
+                    dpg.add_text("Author:", color=[0, 102, 204])
                     dpg.add_text(mod.metadata.meta.get("author", "Unknown"))
 
-                dpg.add_button(
-                    label="DEBUG TAG PRINT",
-                    callback=lambda: logging.debug(mod_name_tag),
-                )
+                with dpg.group(horizontal=True):
+                    dpg.add_text("License:", color=[169, 169, 169])
+                    dpg.add_text(
+                        mod.metadata.meta.get("license", "Not specified"),
+                        color=[169, 169, 169],
+                    )
+
+                with dpg.group(horizontal=True):
+                    dpg.add_text("Game version:", color=[34, 139, 34])
+                    dpg.add_text(mod.metadata.game_version)
+
+                with dpg.group(horizontal=True):
+                    dpg.add_text("Mod version:", color=[34, 139, 34])
+                    dpg.add_text(mod.metadata.mod_version)
 
                 if mod.metadata.errors:
-                    dpg.add_text("Erros:", color=[255, 0, 0, 255])
+                    dpg.add_text("Erros:", color=[255, 0, 0])
                     for error in mod.metadata.errors:
                         dpg.add_text(error, wrap=0, bullet=True)
 
                 if mod.metadata.warnings:
-                    dpg.add_text("Warning:", color=[255, 255, 0, 255])
+                    dpg.add_text("Warning:", color=[255, 255, 0])
                     for warning in mod.metadata.warnings:
                         dpg.add_text(warning, wrap=0, bullet=True)
 
@@ -146,10 +156,10 @@ class App:
                 dpg.add_text(mod.identifier.name)
 
             if mod.metadata.warnings:
-                dpg.configure_item(mod_name_tag, color=[255, 255, 0, 255])
+                dpg.configure_item(mod_name_tag, color=[255, 255, 0])
 
             if mod.metadata.errors:
-                dpg.configure_item(mod_name_tag, color=[255, 0, 0, 255])
+                dpg.configure_item(mod_name_tag, color=[255, 0, 0])
 
             dpg.add_separator()
 
