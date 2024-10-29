@@ -2,7 +2,6 @@ import logging
 import sys
 
 import dearpygui.dearpygui as dpg
-from dearpygui_async import DearPyGuiAsync
 
 import Code.dpg_tools as dpg_tools
 from Code.loc import Localization as loc
@@ -12,9 +11,9 @@ from .fonts_setup import FontManager
 
 
 class App:
-    _dpg_async = DearPyGuiAsync()
-    _filter_text = ""
     dragged_mod_id = None
+    active_mod_search_text = ""
+    inactive_mod_search_text = ""
 
     def __init__(self):
         self.initialize_app()
@@ -48,9 +47,16 @@ class App:
             no_title_bar=True,
             tag="main_window",
         ):
+            dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
             with dpg.group(horizontal=True):
                 with dpg.group():
                     dpg.add_text("Active Mods")
+                    dpg.add_input_text(
+                        tag="active_mod_search_tag",
+                        hint="Search...",
+                        callback=self.on_search_changed,
+                        user_data="active",
+                    )
                     with dpg.child_window(
                         tag="active_mods_child",
                         width=300,
@@ -58,11 +64,16 @@ class App:
                         user_data="active",
                         payload_type="MOD_DRAG",
                     ):
-                        for mod in ModLoader.active_mods:
-                            self.add_movable_mod(mod, "active", "active_mods_child")
+                        pass
 
                 with dpg.group():
                     dpg.add_text("Inactive Mods")
+                    dpg.add_input_text(
+                        tag="inactive_mod_search_tag",
+                        hint="Search...",
+                        callback=self.on_search_changed,
+                        user_data="inactive",
+                    )
                     with dpg.child_window(
                         tag="inactive_mods_child",
                         width=300,
@@ -70,37 +81,75 @@ class App:
                         user_data="inactive",
                         payload_type="MOD_DRAG",
                     ):
-                        for mod in ModLoader.inactive_mods:
-                            self.add_movable_mod(mod, "inactive", "inactive_mods_child")
+                        pass
 
+        self.render_mods()
         dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
 
+    def on_search_changed(self, sender, app_data, user_data):
+        if user_data == "active":
+            self.active_mod_search_text = app_data.lower()
+        elif user_data == "inactive":
+            self.inactive_mod_search_text = app_data.lower()
+        self.render_mods()
+
     def render_mods(self):
+        ModLoader.process_conflicts()
         dpg.delete_item("active_mods_child", children_only=True)
         for mod in ModLoader.active_mods:
-            self.add_movable_mod(mod, "active", "active_mods_child")
+            if self.active_mod_search_text in mod.identifier.name.lower():
+                self.add_movable_mod(mod, "active", "active_mods_child")
 
         dpg.delete_item("inactive_mods_child", children_only=True)
         for mod in ModLoader.inactive_mods:
-            self.add_movable_mod(mod, "inactive", "inactive_mods_child")
+            if self.inactive_mod_search_text in mod.identifier.name.lower():
+                self.add_movable_mod(mod, "inactive", "inactive_mods_child")
 
     def add_movable_mod(self, mod: Package, status: str, parent):
         mod_group_tag = f"{mod.identifier.id}_{status}_group"
+        mod_name_tag = f"{mod.identifier.id}_{status}_text"
 
         with dpg.group(tag=mod_group_tag, parent=parent):
-            mod_button = dpg.add_button(
-                label=mod.identifier.name,
+            dpg.add_text(
+                mod.identifier.name,
+                tag=mod_name_tag,
                 drop_callback=self.on_mod_dropped,
                 payload_type="MOD_DRAG",
                 user_data={"mod_id": mod.identifier.id, "status": status},
             )
 
+            with dpg.popup(parent=mod_name_tag):
+                with dpg.group(horizontal=True):
+                    dpg.add_text("Author: ")
+                    dpg.add_text(mod.metadata.meta.get("author", "Unknown"))
+
+                dpg.add_button(
+                    label="DEBUG TAG PRINT",
+                    callback=lambda: logging.debug(mod_name_tag),
+                )
+
+                if mod.metadata.errors:
+                    dpg.add_text("Erros:", color=[255, 0, 0, 255])
+                    for error in mod.metadata.errors:
+                        dpg.add_text(error, wrap=0, bullet=True)
+
+                if mod.metadata.warnings:
+                    dpg.add_text("Warning:", color=[255, 255, 0, 255])
+                    for warning in mod.metadata.warnings:
+                        dpg.add_text(warning, wrap=0, bullet=True)
+
             with dpg.drag_payload(
-                parent=mod_button,
+                parent=mod_name_tag,
                 payload_type="MOD_DRAG",
                 drag_data={"mod_id": mod.identifier.id, "status": status},
             ):
                 dpg.add_text(mod.identifier.name)
+
+            if mod.metadata.warnings:
+                dpg.configure_item(mod_name_tag, color=[255, 255, 0, 255])
+
+            if mod.metadata.errors:
+                dpg.configure_item(mod_name_tag, color=[255, 0, 0, 255])
 
             dpg.add_separator()
 
@@ -111,7 +160,7 @@ class App:
 
         sender_type = dpg.get_item_type(sender)
 
-        if sender_type == "mvAppItemType::mvButton":
+        if sender_type == "mvAppItemType::mvText":
             target_mod_data = dpg.get_item_user_data(sender)
             target_mod_id = target_mod_data["mod_id"]  # type: ignore
             target_mod_status = target_mod_data["status"]  # type: ignore
@@ -149,7 +198,7 @@ class App:
 
     @classmethod
     def run(cls) -> None:
-        cls._dpg_async.run()
+        dpg.start_dearpygui()
         dpg.destroy_context()
 
     @classmethod
@@ -163,11 +212,17 @@ class App:
     def setup_menu_bar(self):
         pass
 
+    def sort_active_mods(self):
+        ModLoader.sort()
+        self.render_mods()
+
     @staticmethod
     def resize_main_window():
         viewport_width = dpg.get_viewport_width() - 40
         viewport_height = dpg.get_viewport_height() - 80
         dpg.configure_item("main_window", width=viewport_width, height=viewport_height)
         dpg.configure_item("active_mods_child", width=(viewport_width / 2))
+        dpg.configure_item("active_mod_search_tag", width=(viewport_width / 2))
         dpg.configure_item("inactive_mods_child", width=(viewport_width / 2))
+        dpg.configure_item("inactive_mod_search_tag", width=(viewport_width / 2))
         dpg_tools.center_window("main_window")

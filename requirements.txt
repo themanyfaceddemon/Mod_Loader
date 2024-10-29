@@ -1,4 +1,2 @@
 dearpygui
-dearpygui-async
-dearpygui-extend
 pyyaml
