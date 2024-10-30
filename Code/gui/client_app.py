@@ -19,6 +19,9 @@ class App:
         self.initialize_app()
         self.create_windows()
         self.setup_menu_bar()
+        sys.excepthook = self.global_exception_handler
+        dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
+        App.resize_main_window()
 
     def initialize_app(self):
         dpg.create_context()
@@ -26,7 +29,6 @@ class App:
         self._setup_viewport()
         dpg.setup_dearpygui()
         dpg.show_viewport()
-        sys.excepthook = self.global_exception_handler
 
     def _setup_viewport(self):
         dpg.create_viewport(
@@ -38,6 +40,7 @@ class App:
         )
 
     def create_windows(self):
+        self.create_barotrauma_win()
         ModLoader.load()
         ModLoader.process_errors()
 
@@ -47,10 +50,16 @@ class App:
             no_title_bar=True,
             tag="main_window",
         ):
-            dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
+                dpg.add_button(
+                    label="Set barotrauma dir", callback=self.show_barotrauma_win
+                )
 
-            dpg.add_text("Mods with errors: 0", tag="error_count_text")
-            dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Mods with errors: 0", tag="error_count_text")
+                dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+
             dpg.add_separator()
             with dpg.group(horizontal=True):
                 with dpg.group():
@@ -88,7 +97,6 @@ class App:
                         pass
 
         self.render_mods()
-        dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
 
     def on_search_changed(self, sender, app_data, user_data):
         if user_data == "active":
@@ -311,11 +319,31 @@ class App:
         ModLoader.sort()
         self.render_mods()
 
+    def create_barotrauma_win(self):
+        with dpg.window(
+            modal=True,
+            no_resize=True,
+            no_move=True,
+            no_collapse=True,
+            no_title_bar=True,
+            tag="barotrauma_set_dir_win",
+            show=False,
+        ):
+            dpg.add_button(
+                label="close", callback=lambda: dpg.hide_item("barotrauma_set_dir_win")
+            )
+
+    def show_barotrauma_win(self):
+        dpg.show_item("barotrauma_set_dir_win")
+
     @staticmethod
     def resize_main_window():
         viewport_width = dpg.get_viewport_width() - 40
         viewport_height = dpg.get_viewport_height() - 80
         dpg.configure_item("main_window", width=viewport_width, height=viewport_height)
+        dpg.configure_item(
+            "barotrauma_set_dir_win", width=viewport_width, height=viewport_height
+        )
         dpg.configure_item("active_mods_child", width=(viewport_width / 2))
         dpg.configure_item("active_mod_search_tag", width=(viewport_width / 2))
         dpg.configure_item("inactive_mods_child", width=(viewport_width / 2))
