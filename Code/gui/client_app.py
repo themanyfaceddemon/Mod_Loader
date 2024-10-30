@@ -410,6 +410,7 @@ class App:
 
             if path.exists() and (path / "config_player.xml").exists():
                 dpg.set_value("barotrauma_cur_path_valid", "True")
+
                 dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
 
                 AppGlobalsAndConfig.set("barotrauma_dir", str(path))
@@ -422,9 +423,28 @@ class App:
             print(f"Path validation error: {e}")
 
         finally:
+            path = AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")
+            enable_cs_scripting = AppGlobalsAndConfig.get("enable_cs_scripting")
+            has_lua = AppGlobalsAndConfig.get("has_lua")
+
+            dpg.set_value("cs_scripting_status", "Yes" if enable_cs_scripting else "No")
+            dpg.configure_item(
+                "cs_scripting_status",
+                color=[0, 255, 0] if enable_cs_scripting else [255, 0, 0],
+            )
+
+            dpg.set_value("lua_status", "Yes" if has_lua else "No")
+            dpg.configure_item(
+                "lua_status", color=[0, 255, 0] if has_lua else [255, 0, 0]
+            )
+
             dpg.set_value(
                 "barotrauma_cur_path_text",
-                AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),
+                path,
+            )
+            dpg.set_value(
+                "directory_status_text",
+                path,
             )
 
         dpg.set_value("barotrauma_cur_path_valid", "Fasle")
