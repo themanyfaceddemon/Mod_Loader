@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import sys
 
 import dearpygui.dearpygui as dpg
@@ -6,7 +7,7 @@ import dearpygui.dearpygui as dpg
 import Code.dpg_tools as dpg_tools
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
-
+from Code.app_vars import AppGlobalsAndConfig
 from .fonts_setup import FontManager
 
 
@@ -329,12 +330,65 @@ class App:
             tag="barotrauma_set_dir_win",
             show=False,
         ):
+            dpg.add_text("Barotrauma Path Settings", color=(200, 200, 250))
+
+            dpg.add_input_text(
+                hint="Enter Barotrauma Path",
+                callback=self.validate_barotrauma_path,
+                tag="barotrauma_input_path",
+                width=300,
+            )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current Path:", color=(100, 150, 250))
+                dpg.add_text(
+                    AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),  # type: ignore
+                    tag="barotrauma_cur_path_text",
+                    color=(200, 200, 250),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Valid Path:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Not Defined", tag="barotrauma_cur_path_valid", color=(255, 0, 0)
+                )
+
+            dpg.add_separator()
+
             dpg.add_button(
-                label="close", callback=lambda: dpg.hide_item("barotrauma_set_dir_win")
+                label="Close",
+                callback=lambda: dpg.hide_item("barotrauma_set_dir_win"),
+                width=150,
             )
 
     def show_barotrauma_win(self):
         dpg.show_item("barotrauma_set_dir_win")
+
+    def validate_barotrauma_path(self, sender, app_data, user_data):
+        try:
+            path = Path(app_data)
+
+            if path.exists() and (path / "config_player.xml").exists():
+                dpg.set_value("barotrauma_cur_path_valid", "True")
+                dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
+
+                AppGlobalsAndConfig.set("barotrauma_dir", str(path))
+
+                ModLoader.load()
+                self.render_mods()
+                return
+
+        except Exception as e:
+            print(f"Path validation error: {e}")
+
+        finally:
+            dpg.set_value(
+                "barotrauma_cur_path_text",
+                AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),
+            )
+
+        dpg.set_value("barotrauma_cur_path_valid", "Fasle")
+        dpg.configure_item("barotrauma_cur_path_valid", color=[255, 0, 0])
 
     @staticmethod
     def resize_main_window():
