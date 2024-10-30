@@ -1,13 +1,14 @@
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 
 import Code.dpg_tools as dpg_tools
+from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
-from Code.app_vars import AppGlobalsAndConfig
+
 from .fonts_setup import FontManager
 
 
@@ -52,16 +53,57 @@ class App:
             tag="main_window",
         ):
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
                 dpg.add_button(
-                    label="Set barotrauma dir", callback=self.show_barotrauma_win
+                    label="Sort active mods",
+                    callback=self.sort_active_mods,
+                    tag="sort_button",
+                )
+                with dpg.tooltip("sort_button"):
+                    dpg.add_text("Sorts active mods alphabetically.")
+
+                dpg.add_button(
+                    label="Set Barotrauma Directory",
+                    callback=self.show_barotrauma_win,
+                    tag="set_dir_button",
+                )
+                with dpg.tooltip("set_dir_button"):
+                    dpg.add_text("Set the path to your Barotrauma installation.")
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Directory Found:", color=(100, 150, 250))
+                dpg.add_text(
+                    str(AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")),
+                    tag="directory_status_text",
+                    color=(200, 200, 250),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Enable CS Scripting:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Yes" if AppGlobalsAndConfig.get("enable_cs_scripting") else "No",
+                    tag="cs_scripting_status",
+                    color=(0, 255, 0)
+                    if AppGlobalsAndConfig.get("enable_cs_scripting")
+                    else (255, 0, 0),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Lua Installed:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Yes" if AppGlobalsAndConfig.get("has_lua") else "No",
+                    tag="lua_status",
+                    color=(0, 255, 0)
+                    if AppGlobalsAndConfig.get("has_lua")
+                    else (255, 0, 0),
                 )
 
             with dpg.group(horizontal=True):
                 dpg.add_text("Mods with errors: 0", tag="error_count_text")
+                dpg.add_text("|")
                 dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
 
             dpg.add_separator()
+
             with dpg.group(horizontal=True):
                 with dpg.group():
                     dpg.add_text("Active Mods")
@@ -73,7 +115,6 @@ class App:
                     )
                     with dpg.child_window(
                         tag="active_mods_child",
-                        width=300,
                         drop_callback=self.on_mod_dropped,
                         user_data="active",
                         payload_type="MOD_DRAG",
@@ -90,7 +131,6 @@ class App:
                     )
                     with dpg.child_window(
                         tag="inactive_mods_child",
-                        width=300,
                         drop_callback=self.on_mod_dropped,
                         user_data="inactive",
                         payload_type="MOD_DRAG",
