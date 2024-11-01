@@ -1,9 +1,11 @@
 import logging
 import sys
+from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 
 import Code.dpg_tools as dpg_tools
+from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
 
@@ -19,6 +21,9 @@ class App:
         self.initialize_app()
         self.create_windows()
         self.setup_menu_bar()
+        sys.excepthook = self.global_exception_handler
+        dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
+        App.resize_main_window()
 
     def initialize_app(self):
         dpg.create_context()
@@ -26,7 +31,6 @@ class App:
         self._setup_viewport()
         dpg.setup_dearpygui()
         dpg.show_viewport()
-        sys.excepthook = self.global_exception_handler
 
     def _setup_viewport(self):
         dpg.create_viewport(
@@ -38,6 +42,7 @@ class App:
         )
 
     def create_windows(self):
+        self.create_barotrauma_win()
         ModLoader.load()
         ModLoader.process_errors()
 
@@ -47,11 +52,58 @@ class App:
             no_title_bar=True,
             tag="main_window",
         ):
-            dpg.add_button(label="Sort active mods", callback=self.sort_active_mods)
+            with dpg.group(horizontal=True):
+                dpg.add_button(
+                    label="Sort active mods",
+                    callback=self.sort_active_mods,
+                    tag="sort_button",
+                )
+                with dpg.tooltip("sort_button"):
+                    dpg.add_text("Sorts active mods alphabetically.")
 
-            dpg.add_text("Mods with errors: 0", tag="error_count_text")
-            dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+                dpg.add_button(
+                    label="Set Barotrauma Directory",
+                    callback=self.show_barotrauma_win,
+                    tag="set_dir_button",
+                )
+                with dpg.tooltip("set_dir_button"):
+                    dpg.add_text("Set the path to your Barotrauma installation.")
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Directory Found:", color=(100, 150, 250))
+                dpg.add_text(
+                    str(AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")),
+                    tag="directory_status_text",
+                    color=(200, 200, 250),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Enable CS Scripting:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Yes" if AppGlobalsAndConfig.get("enable_cs_scripting") else "No",
+                    tag="cs_scripting_status",
+                    color=(0, 255, 0)
+                    if AppGlobalsAndConfig.get("enable_cs_scripting")
+                    else (255, 0, 0),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Lua Installed:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Yes" if AppGlobalsAndConfig.get("has_lua") else "No",
+                    tag="lua_status",
+                    color=(0, 255, 0)
+                    if AppGlobalsAndConfig.get("has_lua")
+                    else (255, 0, 0),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Mods with errors: 0", tag="error_count_text")
+                dpg.add_text("|")
+                dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+
             dpg.add_separator()
+
             with dpg.group(horizontal=True):
                 with dpg.group():
                     dpg.add_text("Active Mods")
@@ -63,7 +115,6 @@ class App:
                     )
                     with dpg.child_window(
                         tag="active_mods_child",
-                        width=300,
                         drop_callback=self.on_mod_dropped,
                         user_data="active",
                         payload_type="MOD_DRAG",
@@ -80,7 +131,6 @@ class App:
                     )
                     with dpg.child_window(
                         tag="inactive_mods_child",
-                        width=300,
                         drop_callback=self.on_mod_dropped,
                         user_data="inactive",
                         payload_type="MOD_DRAG",
@@ -88,7 +138,6 @@ class App:
                         pass
 
         self.render_mods()
-        dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
 
     def on_search_changed(self, sender, app_data, user_data):
         if user_data == "active":
@@ -311,11 +360,104 @@ class App:
         ModLoader.sort()
         self.render_mods()
 
+    def create_barotrauma_win(self):
+        with dpg.window(
+            modal=True,
+            no_resize=True,
+            no_move=True,
+            no_collapse=True,
+            no_title_bar=True,
+            tag="barotrauma_set_dir_win",
+            show=False,
+        ):
+            dpg.add_text("Barotrauma Path Settings", color=(200, 200, 250))
+
+            dpg.add_input_text(
+                hint="Enter Barotrauma Path",
+                callback=self.validate_barotrauma_path,
+                tag="barotrauma_input_path",
+                width=300,
+            )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Current Path:", color=(100, 150, 250))
+                dpg.add_text(
+                    AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),  # type: ignore
+                    tag="barotrauma_cur_path_text",
+                    color=(200, 200, 250),
+                )
+
+            with dpg.group(horizontal=True):
+                dpg.add_text("Valid Path:", color=(100, 150, 250))
+                dpg.add_text(
+                    "Not Defined", tag="barotrauma_cur_path_valid", color=(255, 0, 0)
+                )
+
+            dpg.add_separator()
+
+            dpg.add_button(
+                label="Close",
+                callback=lambda: dpg.hide_item("barotrauma_set_dir_win"),
+                width=150,
+            )
+
+    def show_barotrauma_win(self):
+        dpg.show_item("barotrauma_set_dir_win")
+
+    def validate_barotrauma_path(self, sender, app_data, user_data):
+        try:
+            path = Path(app_data)
+
+            if path.exists() and (path / "config_player.xml").exists():
+                dpg.set_value("barotrauma_cur_path_valid", "True")
+
+                dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
+
+                AppGlobalsAndConfig.set("barotrauma_dir", str(path))
+
+                ModLoader.load()
+                self.render_mods()
+                return
+
+        except Exception as e:
+            print(f"Path validation error: {e}")
+
+        finally:
+            path = AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")
+            enable_cs_scripting = AppGlobalsAndConfig.get("enable_cs_scripting")
+            has_lua = AppGlobalsAndConfig.get("has_lua")
+
+            dpg.set_value("cs_scripting_status", "Yes" if enable_cs_scripting else "No")
+            dpg.configure_item(
+                "cs_scripting_status",
+                color=[0, 255, 0] if enable_cs_scripting else [255, 0, 0],
+            )
+
+            dpg.set_value("lua_status", "Yes" if has_lua else "No")
+            dpg.configure_item(
+                "lua_status", color=[0, 255, 0] if has_lua else [255, 0, 0]
+            )
+
+            dpg.set_value(
+                "barotrauma_cur_path_text",
+                path,
+            )
+            dpg.set_value(
+                "directory_status_text",
+                path,
+            )
+
+        dpg.set_value("barotrauma_cur_path_valid", "Fasle")
+        dpg.configure_item("barotrauma_cur_path_valid", color=[255, 0, 0])
+
     @staticmethod
     def resize_main_window():
         viewport_width = dpg.get_viewport_width() - 40
         viewport_height = dpg.get_viewport_height() - 80
         dpg.configure_item("main_window", width=viewport_width, height=viewport_height)
+        dpg.configure_item(
+            "barotrauma_set_dir_win", width=viewport_width, height=viewport_height
+        )
         dpg.configure_item("active_mods_child", width=(viewport_width / 2))
         dpg.configure_item("active_mod_search_tag", width=(viewport_width / 2))
         dpg.configure_item("inactive_mods_child", width=(viewport_width / 2))
