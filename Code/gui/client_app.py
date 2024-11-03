@@ -54,25 +54,29 @@ class App:
         ):
             with dpg.group(horizontal=True):
                 dpg.add_button(
-                    label="Sort active mods",
+                    label=loc.get_string("btn-sort-mods"),
                     callback=self.sort_active_mods,
                     tag="sort_button",
                 )
                 with dpg.tooltip("sort_button"):
-                    dpg.add_text("Sorts active mods alphabetically.")
+                    dpg.add_text(loc.get_string("btn-sort-mods-desc"))
 
                 dpg.add_button(
-                    label="Set Barotrauma Directory",
+                    label=loc.get_string("btn-set-game-dir"),
                     callback=self.show_barotrauma_win,
                     tag="set_dir_button",
                 )
                 with dpg.tooltip("set_dir_button"):
-                    dpg.add_text("Set the path to your Barotrauma installation.")
+                    dpg.add_text(loc.get_string("btn-set-game-dir-desc"))
 
             with dpg.group(horizontal=True):
                 dpg.add_text("Directory Found:", color=(100, 150, 250))
                 dpg.add_text(
-                    str(AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")),
+                    str(
+                        AppGlobalsAndConfig.get(
+                            "barotrauma_dir", loc.get_string("base-not-set")
+                        )
+                    ),
                     tag="directory_status_text",
                     color=(200, 200, 250),
                 )
@@ -80,7 +84,9 @@ class App:
             with dpg.group(horizontal=True):
                 dpg.add_text("Enable CS Scripting:", color=(100, 150, 250))
                 dpg.add_text(
-                    "Yes" if AppGlobalsAndConfig.get("enable_cs_scripting") else "No",
+                    loc.get_string("base-yes")
+                    if AppGlobalsAndConfig.get("enable_cs_scripting")
+                    else loc.get_string("base-no"),
                     tag="cs_scripting_status",
                     color=(0, 255, 0)
                     if AppGlobalsAndConfig.get("enable_cs_scripting")
@@ -90,7 +96,9 @@ class App:
             with dpg.group(horizontal=True):
                 dpg.add_text("Lua Installed:", color=(100, 150, 250))
                 dpg.add_text(
-                    "Yes" if AppGlobalsAndConfig.get("has_lua") else "No",
+                    loc.get_string("base-yes")
+                    if AppGlobalsAndConfig.get("has_lua")
+                    else loc.get_string("base-no"),
                     tag="lua_status",
                     color=(0, 255, 0)
                     if AppGlobalsAndConfig.get("has_lua")
@@ -98,9 +106,9 @@ class App:
                 )
 
             with dpg.group(horizontal=True):
-                dpg.add_text("Mods with errors: 0", tag="error_count_text")
+                dpg.add_text("nope =)", tag="error_count_text")
                 dpg.add_text("|")
-                dpg.add_text("Mods with warnings: 0", tag="warning_count_text")
+                dpg.add_text("nope =)", tag="warning_count_text")
 
             dpg.add_separator()
 
@@ -142,8 +150,10 @@ class App:
     def on_search_changed(self, sender, app_data, user_data):
         if user_data == "active":
             self.active_mod_search_text = app_data.lower()
+
         elif user_data == "inactive":
             self.inactive_mod_search_text = app_data.lower()
+
         self.render_mods()
 
     def render_mods(self):
@@ -159,8 +169,12 @@ class App:
                 self.add_movable_mod(mod, "inactive", "inactive_mods_child")
 
         error_count, warning_count = self.count_mods_with_issues()
-        dpg.set_value("error_count_text", f"Mods with errors: {error_count}")
-        dpg.set_value("warning_count_text", f"Mods with warnings: {warning_count}")
+        dpg.set_value(
+            "error_count_text", loc.get_string("error-count", count=error_count)
+        )
+        dpg.set_value(
+            "warning_count_text", loc.get_string("warning-count", count=warning_count)
+        )
 
     def add_movable_mod(self, mod: Package, status: str, parent):
         mod_group_tag = f"{mod.identifier.id}_{status}_group"
@@ -342,8 +356,16 @@ class App:
 
     @classmethod
     def run(cls) -> None:
-        dpg.start_dearpygui()
-        dpg.destroy_context()
+        try:
+            dpg.start_dearpygui()
+        
+        except Exception as e:
+            logging.error(f"Error during running GUI: {e}")
+        
+        finally:
+            logging.debug("Destroying context...")
+            dpg.destroy_context()
+            logging.debug("Context destroyed.")
 
     @classmethod
     def stop(cls) -> None:
@@ -354,7 +376,19 @@ class App:
         logging.error("Exception occurred", exc_info=(exctype, value, traceback_obj))
 
     def setup_menu_bar(self):
-        pass
+        dpg.add_viewport_menu_bar(tag="main_view_bar")
+
+        with dpg.menu(label="Settings", parent="main_view_bar"):
+            dpg.add_checkbox(
+                label="Toggle experimental",
+                callback=lambda s, a: AppGlobalsAndConfig.set("experimental", a),
+            )
+            dpg.add_combo(
+                items=["eng", "rus"],
+                label="Language",
+                default_value=AppGlobalsAndConfig.get("lang", "eng"),  # type: ignore
+                callback=lambda s, a: AppGlobalsAndConfig.set("lang", a),
+            )
 
     def sort_active_mods(self):
         ModLoader.sort()
@@ -423,7 +457,9 @@ class App:
             print(f"Path validation error: {e}")
 
         finally:
-            path = AppGlobalsAndConfig.get("barotrauma_dir", "Not Set")
+            path = AppGlobalsAndConfig.get(
+                "barotrauma_dir", loc.get_string("base-not-set")
+            )
             enable_cs_scripting = AppGlobalsAndConfig.get("enable_cs_scripting")
             has_lua = AppGlobalsAndConfig.get("has_lua")
 
@@ -471,6 +507,7 @@ class App:
         for mod in ModLoader.active_mods:
             if mod.metadata.errors:
                 error_count += 1
+
             if mod.metadata.warnings:
                 warning_count += 1
 

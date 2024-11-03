@@ -2,13 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "No debug",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "main.py",
-            "console": "integratedTerminal",
-        },
-        {
             "name": "Debug",
             "type": "debugpy",
             "request": "launch",
@@ -17,6 +10,13 @@
             "args": [
                 "--debug"
             ]
+        },
+        {
+            "name": "No debug",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
         }
     ]
 }

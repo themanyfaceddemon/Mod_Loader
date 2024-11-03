@@ -1,16 +1,32 @@
 import argparse
+import faulthandler
 import logging
+import sys
 from pathlib import Path
+
+from colorama import Fore, Style, init
 
 from Code.app_vars import AppGlobalsAndConfig
 from Code.gui.client_app import App
 from Code.loc import Localization as loc
 from Code.package import ModLoader
 
+faulthandler.enable(file=sys.stderr, all_threads=True)
+init(autoreset=True)
+
 
 class FixedWidthFormatter(logging.Formatter):
+    COLORS = {
+        "DEBUG": Fore.CYAN,
+        "INFO": Fore.GREEN,
+        "WARNING": Fore.YELLOW,
+        "ERROR": Fore.RED,
+        "CRITICAL": Fore.RED + Style.BRIGHT,
+    }
+
     def format(self, record):
-        record.levelname = f"{record.levelname:<7}"
+        color = self.COLORS.get(record.levelname.strip(), "")
+        record.levelname = f"{color}{record.levelname:<7}{Style.RESET_ALL}"
         return super().format(record)
 
 
@@ -20,7 +36,10 @@ def init_classes() -> None:
 
 
 def main() -> None:
+    logging.debug("Starting initialization of classes...")
     init_classes()
+    logging.debug("Initialization complete. Loading translations...")
+
     loc.load_translations(
         Path(
             AppGlobalsAndConfig.get_data_root()
@@ -28,9 +47,12 @@ def main() -> None:
             / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
         )
     )
+    logging.debug("Translations loaded. Starting app...")
 
     App()
+    logging.debug("App instance created. Running app...")
     App.run()
+    logging.debug("App run completed.")
 
 
 if __name__ == "__main__":
