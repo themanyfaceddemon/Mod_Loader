@@ -25,27 +25,35 @@ class BarotraumaWindow:
             no_title_bar=True,
             tag="baro_window",
         ):
-            dpg.add_text("Barotrauma Path Settings", color=(200, 200, 250))
+            dpg.add_text(
+                loc.get_string("label-barotrauma-path-settings"), color=(200, 200, 250)
+            )
 
             dpg.add_input_text(
-                hint="Enter Barotrauma Path",
+                hint=loc.get_string("hint-enter-barotrauma-path"),
                 callback=BarotraumaWindow.validate_barotrauma_path,
                 tag="barotrauma_input_path",
                 width=300,
             )
 
             with dpg.group(horizontal=True):
-                dpg.add_text("Current Path:", color=(100, 150, 250))
                 dpg.add_text(
-                    AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),  # type: ignore
+                    loc.get_string("label-current-path"), color=(100, 150, 250)
+                )
+                dpg.add_text(
+                    AppGlobalsAndConfig.get(
+                        "barotrauma_dir", loc.get_string("base-not-set")
+                    ),  # type: ignore
                     tag="barotrauma_cur_path_text",
                     color=(200, 200, 250),
                 )
 
             with dpg.group(horizontal=True):
-                dpg.add_text("Valid Path:", color=(100, 150, 250))
+                dpg.add_text(loc.get_string("label-valid-path"), color=(100, 150, 250))
                 dpg.add_text(
-                    "Not Defined", tag="barotrauma_cur_path_valid", color=(255, 0, 0)
+                    loc.get_string("label-not-defined"),
+                    tag="barotrauma_cur_path_valid",
+                    color=(255, 0, 0),
                 )
 
             dpg.add_separator()
@@ -53,7 +61,6 @@ class BarotraumaWindow:
             dpg.add_button(
                 label=loc.get_string("base-close"),
                 callback=lambda: dpg.delete_item("baro_window"),
-                
             )
 
             if AppGlobalsAndConfig.get("experimental", False):

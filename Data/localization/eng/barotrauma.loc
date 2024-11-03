@@ -1,0 +1,7 @@
+label-barotrauma-path-settings = Game Path Settings
+
+hint-enter-barotrauma-path = Enter the game path
+
+label-current-path = Current path:
+label-not-defined = Not defined
+label-valid-path = Valid path?

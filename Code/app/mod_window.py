@@ -4,8 +4,6 @@ from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
 
-from .barotrauma_window import BarotraumaWindow
-
 
 class ModWindow:
     dragged_mod_id = None
@@ -28,14 +26,6 @@ class ModWindow:
                 )
                 with dpg.tooltip("sort_button"):
                     dpg.add_text(loc.get_string("btn-sort-mods-desc"))
-
-                dpg.add_button(
-                    label=loc.get_string("btn-set-game-dir"),
-                    callback=BarotraumaWindow.create_window,
-                    tag="set_dir_button",
-                )
-                with dpg.tooltip("set_dir_button"):
-                    dpg.add_text(loc.get_string("btn-set-game-dir-desc"))
 
             with dpg.group(horizontal=True):
                 dpg.add_text(

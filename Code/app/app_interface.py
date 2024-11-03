@@ -4,6 +4,7 @@ import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
 
+from .barotrauma_window import BarotraumaWindow
 from .mod_window import ModWindow
 
 
@@ -23,10 +24,18 @@ class AppInterface:
         with dpg.menu(
             label=loc.get_string("menu-bar-settings-lable"), parent="main_view_bar"
         ):
+            dpg.add_button(
+                label=loc.get_string("btn-set-game-dir"),
+                callback=BarotraumaWindow.create_window,
+                tag="set_dir_button",
+            )
+            with dpg.tooltip("set_dir_button"):
+                dpg.add_text(loc.get_string("btn-set-game-dir-desc"))
+
             dpg.add_checkbox(
                 label=loc.get_string("menu-toggle-experimental"),
                 callback=lambda s, a: AppGlobalsAndConfig.set("experimental", a),
-                default_value=AppGlobalsAndConfig.get("experimental", False), # type: ignore
+                default_value=AppGlobalsAndConfig.get("experimental", False),  # type: ignore
             )
             dpg.add_combo(
                 items=["eng", "rus"],
