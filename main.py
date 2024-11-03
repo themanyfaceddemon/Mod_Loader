@@ -27,7 +27,7 @@ class FixedWidthFormatter(logging.Formatter):
 
 def init_classes() -> None:
     AppGlobalsAndConfig.init()
-    # ModLoader.init()
+    ModLoader.init()
 
 
 def main() -> None:

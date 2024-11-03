@@ -1,0 +1,26 @@
+label-active-mods = Активные модификации
+label-inactive-mods = Не активные модификации
+
+input-hint-search = Найти модификацию...
+
+label-author = Автор:
+label-directory-found = Путь установки игры:
+label-enable-cs-scripting = Включён CS Scripting?
+
+label-lua-installed = Установлено LUA?
+label-mod-details-title = Полная информация {mod_name}
+
+label-mod-version = Версия мода:
+label-game-version = Под версию игры:
+label-modloader-id = ModLoader ID:
+label-is-local-mod = Локальная модификация?
+
+label-warnings = Предупреждения:
+label-errors = Ошибки:
+
+label-see-full-details = Смотрите в полной информации
+
+label-mod-name = Название модификации:
+
+label-license = Лицензия:
+not-specified = Не указана

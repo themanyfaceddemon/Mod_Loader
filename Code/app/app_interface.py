@@ -3,6 +3,7 @@ import dearpygui.dearpygui as dpg
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
+
 from .mod_window import ModWindow
 
 

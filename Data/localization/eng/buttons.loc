@@ -5,3 +5,5 @@ btn-set-game-dir = Set Barotrauma Directory
 btn-set-game-dir-desc = Set the path to your Barotrauma installation.
 
 btn-experimental-search-game-fold = EXPERIMENTAL! Find the game in all folders on your computer
+
+btn-show-full-details = Show full details
