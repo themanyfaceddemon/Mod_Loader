@@ -1,61 +1,29 @@
-import logging
-import sys
-from pathlib import Path
-
 import dearpygui.dearpygui as dpg
 
-import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
 
-from .fonts_setup import FontManager
+from .barotrauma_window import BarotraumaWindow
 
 
-class App:
+class ModWindow:
     dragged_mod_id = None
     active_mod_search_text = ""
     inactive_mod_search_text = ""
 
-    def __init__(self):
-        self.initialize_app()
-        self.create_windows()
-        self.setup_menu_bar()
-        sys.excepthook = self.global_exception_handler
-        dpg.set_viewport_resize_callback(lambda: App.resize_main_window())
-        App.resize_main_window()
-
-    def initialize_app(self):
-        dpg.create_context()
-        FontManager.load_fonts()
-        self._setup_viewport()
-        dpg.setup_dearpygui()
-        dpg.show_viewport()
-
-    def _setup_viewport(self):
-        dpg.create_viewport(
-            title=loc.get_string("viewport-name"),
-            width=600,
-            min_width=600,
-            height=400,
-            min_height=400,
-        )
-
-    def create_windows(self):
-        self.create_barotrauma_win()
-        ModLoader.load()
-        ModLoader.process_errors()
-
+    @staticmethod
+    def create_window():
         with dpg.window(
             no_move=True,
             no_resize=True,
             no_title_bar=True,
-            tag="main_window",
+            tag="mod_window",
         ):
             with dpg.group(horizontal=True):
                 dpg.add_button(
                     label=loc.get_string("btn-sort-mods"),
-                    callback=self.sort_active_mods,
+                    callback=ModWindow.sort_active_mods,
                     tag="sort_button",
                 )
                 with dpg.tooltip("sort_button"):
@@ -63,7 +31,7 @@ class App:
 
                 dpg.add_button(
                     label=loc.get_string("btn-set-game-dir"),
-                    callback=self.show_barotrauma_win,
+                    callback=BarotraumaWindow.create_window,
                     tag="set_dir_button",
                 )
                 with dpg.tooltip("set_dir_button"):
@@ -118,12 +86,12 @@ class App:
                     dpg.add_input_text(
                         tag="active_mod_search_tag",
                         hint="Search...",
-                        callback=self.on_search_changed,
+                        callback=ModWindow.on_search_changed,
                         user_data="active",
                     )
                     with dpg.child_window(
                         tag="active_mods_child",
-                        drop_callback=self.on_mod_dropped,
+                        drop_callback=ModWindow.on_mod_dropped,
                         user_data="active",
                         payload_type="MOD_DRAG",
                     ):
@@ -134,41 +102,43 @@ class App:
                     dpg.add_input_text(
                         tag="inactive_mod_search_tag",
                         hint="Search...",
-                        callback=self.on_search_changed,
+                        callback=ModWindow.on_search_changed,
                         user_data="inactive",
                     )
                     with dpg.child_window(
                         tag="inactive_mods_child",
-                        drop_callback=self.on_mod_dropped,
+                        drop_callback=ModWindow.on_mod_dropped,
                         user_data="inactive",
                         payload_type="MOD_DRAG",
                     ):
                         pass
 
-        self.render_mods()
+        ModWindow.render_mods()
 
-    def on_search_changed(self, sender, app_data, user_data):
+    @staticmethod
+    def on_search_changed(sender, app_data, user_data):
         if user_data == "active":
-            self.active_mod_search_text = app_data.lower()
+            ModWindow.active_mod_search_text = app_data.lower()
 
         elif user_data == "inactive":
-            self.inactive_mod_search_text = app_data.lower()
+            ModWindow.inactive_mod_search_text = app_data.lower()
 
-        self.render_mods()
+        ModWindow.render_mods()
 
-    def render_mods(self):
+    @staticmethod
+    def render_mods():
         ModLoader.process_errors()
         dpg.delete_item("active_mods_child", children_only=True)
         for mod in ModLoader.active_mods:
-            if self.active_mod_search_text in mod.identifier.name.lower():
-                self.add_movable_mod(mod, "active", "active_mods_child")
+            if ModWindow.active_mod_search_text in mod.identifier.name.lower():
+                ModWindow.add_movable_mod(mod, "active", "active_mods_child")
 
         dpg.delete_item("inactive_mods_child", children_only=True)
         for mod in ModLoader.inactive_mods:
-            if self.inactive_mod_search_text in mod.identifier.name.lower():
-                self.add_movable_mod(mod, "inactive", "inactive_mods_child")
+            if ModWindow.inactive_mod_search_text in mod.identifier.name.lower():
+                ModWindow.add_movable_mod(mod, "inactive", "inactive_mods_child")
 
-        error_count, warning_count = self.count_mods_with_issues()
+        error_count, warning_count = ModWindow.count_mods_with_issues()
         dpg.set_value(
             "error_count_text", loc.get_string("error-count", count=error_count)
         )
@@ -176,7 +146,8 @@ class App:
             "warning_count_text", loc.get_string("warning-count", count=warning_count)
         )
 
-    def add_movable_mod(self, mod: Package, status: str, parent):
+    @staticmethod
+    def add_movable_mod(mod: Package, status: str, parent):
         mod_group_tag = f"{mod.identifier.id}_{status}_group"
         mod_name_tag = f"{mod.identifier.id}_{status}_text"
 
@@ -184,7 +155,7 @@ class App:
             dpg.add_text(
                 mod.identifier.name,
                 tag=mod_name_tag,
-                drop_callback=self.on_mod_dropped,
+                drop_callback=ModWindow.on_mod_dropped,
                 payload_type="MOD_DRAG",
                 user_data={"mod_id": mod.identifier.id, "status": status},
             )
@@ -231,7 +202,7 @@ class App:
 
                 dpg.add_button(
                     label="Show full details",
-                    callback=lambda: self.show_details_window(mod),
+                    callback=lambda: ModWindow.show_details_window(mod),
                 )
 
             with dpg.drag_payload(
@@ -250,7 +221,8 @@ class App:
 
             dpg.add_separator()
 
-    def show_details_window(self, mod: Package):
+    @staticmethod
+    def show_details_window(mod: Package):
         title = f"MOD: {mod.identifier.name} - Full Details"
         window_tag = f"{mod.identifier.id}_full_details_window"
 
@@ -311,7 +283,8 @@ class App:
                     dpg.add_text(warning, wrap=0, bullet=True)
                 dpg.add_separator()
 
-    def on_mod_dropped(self, sender, app_data, user_data):
+    @staticmethod
+    def on_mod_dropped(sender, app_data, user_data):
         drag_data = app_data
         dragged_mod_id = drag_data["mod_id"]
         dragged_mod_status = drag_data["status"]
@@ -349,158 +322,15 @@ class App:
             else:
                 ModLoader.move_inactive_mod_to_end(dragged_mod_id)
 
-        else:
-            logging.warning(f"Unknown drop target: {sender}")
-
-        self.render_mods()
-
-    @classmethod
-    def run(cls) -> None:
-        try:
-            dpg.start_dearpygui()
-        
-        except Exception as e:
-            logging.error(f"Error during running GUI: {e}")
-        
-        finally:
-            logging.debug("Destroying context...")
-            dpg.destroy_context()
-            logging.debug("Context destroyed.")
-
-    @classmethod
-    def stop(cls) -> None:
-        dpg.stop_dearpygui()
+        ModWindow.render_mods()
 
     @staticmethod
-    def global_exception_handler(exctype, value, traceback_obj):
-        logging.error("Exception occurred", exc_info=(exctype, value, traceback_obj))
-
-    def setup_menu_bar(self):
-        dpg.add_viewport_menu_bar(tag="main_view_bar")
-
-        with dpg.menu(label="Settings", parent="main_view_bar"):
-            dpg.add_checkbox(
-                label="Toggle experimental",
-                callback=lambda s, a: AppGlobalsAndConfig.set("experimental", a),
-            )
-            dpg.add_combo(
-                items=["eng", "rus"],
-                label="Language",
-                default_value=AppGlobalsAndConfig.get("lang", "eng"),  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set("lang", a),
-            )
-
-    def sort_active_mods(self):
+    def sort_active_mods():
         ModLoader.sort()
-        self.render_mods()
-
-    def create_barotrauma_win(self):
-        with dpg.window(
-            modal=True,
-            no_resize=True,
-            no_move=True,
-            no_collapse=True,
-            no_title_bar=True,
-            tag="barotrauma_set_dir_win",
-            show=False,
-        ):
-            dpg.add_text("Barotrauma Path Settings", color=(200, 200, 250))
-
-            dpg.add_input_text(
-                hint="Enter Barotrauma Path",
-                callback=self.validate_barotrauma_path,
-                tag="barotrauma_input_path",
-                width=300,
-            )
-
-            with dpg.group(horizontal=True):
-                dpg.add_text("Current Path:", color=(100, 150, 250))
-                dpg.add_text(
-                    AppGlobalsAndConfig.get("barotrauma_dir", "Not Set"),  # type: ignore
-                    tag="barotrauma_cur_path_text",
-                    color=(200, 200, 250),
-                )
-
-            with dpg.group(horizontal=True):
-                dpg.add_text("Valid Path:", color=(100, 150, 250))
-                dpg.add_text(
-                    "Not Defined", tag="barotrauma_cur_path_valid", color=(255, 0, 0)
-                )
-
-            dpg.add_separator()
-
-            dpg.add_button(
-                label="Close",
-                callback=lambda: dpg.hide_item("barotrauma_set_dir_win"),
-                width=150,
-            )
-
-    def show_barotrauma_win(self):
-        dpg.show_item("barotrauma_set_dir_win")
-
-    def validate_barotrauma_path(self, sender, app_data, user_data):
-        try:
-            path = Path(app_data)
-
-            if path.exists() and (path / "config_player.xml").exists():
-                dpg.set_value("barotrauma_cur_path_valid", "True")
-
-                dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
-
-                AppGlobalsAndConfig.set("barotrauma_dir", str(path))
-
-                ModLoader.load()
-                self.render_mods()
-                return
-
-        except Exception as e:
-            print(f"Path validation error: {e}")
-
-        finally:
-            path = AppGlobalsAndConfig.get(
-                "barotrauma_dir", loc.get_string("base-not-set")
-            )
-            enable_cs_scripting = AppGlobalsAndConfig.get("enable_cs_scripting")
-            has_lua = AppGlobalsAndConfig.get("has_lua")
-
-            dpg.set_value("cs_scripting_status", "Yes" if enable_cs_scripting else "No")
-            dpg.configure_item(
-                "cs_scripting_status",
-                color=[0, 255, 0] if enable_cs_scripting else [255, 0, 0],
-            )
-
-            dpg.set_value("lua_status", "Yes" if has_lua else "No")
-            dpg.configure_item(
-                "lua_status", color=[0, 255, 0] if has_lua else [255, 0, 0]
-            )
-
-            dpg.set_value(
-                "barotrauma_cur_path_text",
-                path,
-            )
-            dpg.set_value(
-                "directory_status_text",
-                path,
-            )
-
-        dpg.set_value("barotrauma_cur_path_valid", "Fasle")
-        dpg.configure_item("barotrauma_cur_path_valid", color=[255, 0, 0])
+        ModWindow.render_mods()
 
     @staticmethod
-    def resize_main_window():
-        viewport_width = dpg.get_viewport_width() - 40
-        viewport_height = dpg.get_viewport_height() - 80
-        dpg.configure_item("main_window", width=viewport_width, height=viewport_height)
-        dpg.configure_item(
-            "barotrauma_set_dir_win", width=viewport_width, height=viewport_height
-        )
-        dpg.configure_item("active_mods_child", width=(viewport_width / 2))
-        dpg.configure_item("active_mod_search_tag", width=(viewport_width / 2))
-        dpg.configure_item("inactive_mods_child", width=(viewport_width / 2))
-        dpg.configure_item("inactive_mod_search_tag", width=(viewport_width / 2))
-        dpg_tools.center_window("main_window")
-
-    def count_mods_with_issues(self):
+    def count_mods_with_issues():
         error_count = 0
         warning_count = 0
 

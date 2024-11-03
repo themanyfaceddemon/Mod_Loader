@@ -1,18 +1,13 @@
 import argparse
-import faulthandler
 import logging
-import sys
 from pathlib import Path
 
 from colorama import Fore, Style, init
 
+from Code.app import App
 from Code.app_vars import AppGlobalsAndConfig
-from Code.gui.client_app import App
 from Code.loc import Localization as loc
 from Code.package import ModLoader
-
-faulthandler.enable(file=sys.stderr, all_threads=True)
-init(autoreset=True)
 
 
 class FixedWidthFormatter(logging.Formatter):
@@ -32,7 +27,7 @@ class FixedWidthFormatter(logging.Formatter):
 
 def init_classes() -> None:
     AppGlobalsAndConfig.init()
-    ModLoader.init()
+    # ModLoader.init()
 
 
 def main() -> None:
@@ -56,6 +51,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    init(autoreset=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true", help="Debug on")
 
