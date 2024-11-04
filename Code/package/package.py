@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 from Code.app_vars import AppGlobalsAndConfig
+from Code.loc import Localization as loc
 
 from .identifier import Identifier
 from .metadata import IdentifierConflict, MetaData
@@ -91,10 +92,10 @@ class Package:
             return
 
         self.metadata.meta["author"] = self._get_text_or_default(  # type: ignore
-            meta, "author", "Unknown"
+            meta, "author", loc.get_string("base-unknown")
         )
         self.metadata.meta["license"] = self._get_text_or_default(  # type: ignore
-            meta, "license", "Not specified"
+            meta, "license", loc.get_string("not-specified")
         )
         self.identifier.package_id = self._get_text_or_default(meta, "id", None)
 

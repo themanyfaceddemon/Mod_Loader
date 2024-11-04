@@ -1,0 +1,27 @@
+label-active-mods = Active Mods
+label-inactive-mods = Inactive Mods
+
+input-hint-search = Find Mod...
+
+label-author = Author:
+label-directory-found = Game Installation Path:
+label-enable-cs-scripting = Is CS Scripting Enabled?
+
+label-lua-installed = Is LUA Installed?
+
+label-mod-details-title = Full Details {mod_name}
+
+label-mod-version = Mod Version:
+label-game-version = For Game Version:
+label-modloader-id = ModLoader ID:
+label-is-local-mod = Local Mod?
+
+label-warnings = Warnings:
+label-errors = Errors:
+
+label-see-full-details = See full details
+
+label-mod-name = Modification name:
+
+label-license = License:
+not-specified = Not specified

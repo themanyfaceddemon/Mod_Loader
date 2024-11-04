@@ -1,0 +1,14 @@
+label-barotrauma-path-settings = Настройка пути к игре
+
+hint-enter-barotrauma-path = Введите путь к игре
+
+label-current-path = Текущий путь:
+label-not-defined = Не определено
+label-valid-path = Верный путь?
+
+warning-exp-game-1 = Внимание: Эта функция является экспериментальной и может работать нестабильно.
+warning-exp-game-2 = Поиск начнётся после вашего подтверждения
+
+search-exp-game = Идёт поиск...
+search-exp-game-done = Выберите путь к вашей игре Barotrauma:
+search-exp-game-none = К сожалению, ничего не найдено.

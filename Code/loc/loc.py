@@ -18,7 +18,6 @@ class Localization:
 
     @classmethod
     def clear_load_translation(cls) -> None:
-        """Очищает все загруженные переводы."""
         cls._translations.clear()
 
     @classmethod
@@ -44,7 +43,6 @@ class Localization:
             for line in file:
                 line = line.strip()
 
-                # Убираем комментарий, если # не экранирован
                 if "#" in line:
                     line = cls._remove_comment(line)
 
@@ -67,13 +65,10 @@ class Localization:
             str: Строка без комментария.
         """
         if r"\#" in line:
-            # Если # экранирован, заменяем его на специальный маркер
             line = line.replace(r"\#", "__TEMP_HASH__")
 
-        # Оставляем только часть строки до первого #
         line = line.split("#", 1)[0].strip()
 
-        # Возвращаем экранированный # обратно
         return line.replace("__TEMP_HASH__", "#")
 
     @staticmethod
@@ -135,7 +130,7 @@ class Localization:
                     )
                     text = text.replace(f"{{sex-{sub_key}}}", gender_value)
 
-            elif isinstance(value, str):
-                text = text.replace(f"{{{sub_key}}}", value)
+            else:
+                text = text.replace(f"{{{sub_key}}}", str(value))
 
         return text
