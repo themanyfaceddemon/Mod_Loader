@@ -13,7 +13,7 @@
 ## TODO:
 - [ ] Launch barotrauma from the launcher
 - [ ] More internal library so that at least popular and fresh mods are in normal order at the start
-- [ ] Localization if hands reach
+- [x] Localization if hands reach
 
 ## Installation
 
