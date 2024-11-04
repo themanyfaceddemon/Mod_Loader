@@ -68,3 +68,7 @@ class AppInterface:
                 "baro_window", width=viewport_width, height=viewport_height
             )
             dpg_tools.center_window("baro_window")
+
+        if dpg.does_item_exist("exp_game"):
+            dpg.configure_item("exp_game", width=viewport_width, height=viewport_height)
+            dpg_tools.center_window("exp_game")

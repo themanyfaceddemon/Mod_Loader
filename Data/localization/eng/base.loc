@@ -3,5 +3,6 @@ base-not-set = Not set
 base-no = No
 base-yes = Yes
 
+base-start = Start
 base-close = Close
 base-unknown = Unknown
