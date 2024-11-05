@@ -317,12 +317,18 @@ class BarotraumaWindow:
                 except Exception as e:
                     logger.debug(f"Error processing directory {current_dir}: {e}")
 
+        if os.name == "nt":  # Windows
+            executable_name = "barotrauma.exe"
+
+        else:
+            executable_name = "barotrauma"
+
         valid_paths = []
         for path in found_paths:
-            for exec_file in path.glob("*barotrauma*.*"):
-                if exec_file.suffix in [".exe", ".sh", ".app", ".bat"]:
-                    logger.debug(f"Verified executable in path: {exec_file}")
-                    valid_paths.append(path)
-                    break
+            exec_file = path / executable_name
+
+            if exec_file.exists() and exec_file.name.lower() == executable_name:
+                logger.debug(f"Verified executable in path: {exec_file}")
+                valid_paths.append(path)
 
         return valid_paths
