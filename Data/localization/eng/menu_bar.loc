@@ -1,3 +1,8 @@
 menu-bar-settings-lable = Settings
+
 menu-toggle-experimental = Toggle experimental mode
+setting-toggle-install-lua = Toggle auto install lua
+setting-toggle-skip-intro = Toggle auto skip intro
 menu-language = Language
+
+menu-bar-start-game = Start game
