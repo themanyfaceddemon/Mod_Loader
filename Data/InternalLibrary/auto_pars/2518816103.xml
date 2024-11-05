@@ -7,6 +7,6 @@
 		<warning>This dep was automatically generated!</warning>
 	</meta>
 	<dependencies>
-		<requirement name="Barotraumatic Creature Pack" steamID="2831987252"/>
+		<patch name="Barotraumatic Creature Pack" steamID="2831987252"/>
 	</dependencies>
 </metadata>

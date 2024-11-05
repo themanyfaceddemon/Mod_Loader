@@ -7,6 +7,6 @@
 		<warning>This dep was automatically generated!</warning>
 	</meta>
 	<dependencies>
-		<requirement name="Project:Endfield (终末地计划) v2.6" steamID="3126336445"/>
+		<patch name="Project:Endfield (终末地计划) v2.6" steamID="3126336445"/>
 	</dependencies>
 </metadata>
