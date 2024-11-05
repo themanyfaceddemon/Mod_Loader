@@ -248,15 +248,13 @@ class BarotraumaWindow:
             "httpcache",
             "venv",
             "tmp",
-            "$recycle.bin",
             "programdata",
         }
 
-        entry_name_lower = entry.name.lower()
+        entry_name_lower: str = entry.name.lower()
 
         if (
-            entry_name_lower.startswith(".")
-            or entry_name_lower.startswith("_")
+            entry_name_lower.startswith((".", "_", "$"))
             or entry_name_lower in ignored_directories
         ):
             logger.debug(f"Ignoring directory: {entry}")
