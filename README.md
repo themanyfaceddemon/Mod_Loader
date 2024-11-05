@@ -2,7 +2,12 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/themanyfaceddemon/Mod_Loader?label=release)
 
 ### Overview
-`Mod Loader` TODO
+`Mod Loader` - This tool is designed to ease the headache of managing modifications. It currently supports the following features:
+
+- **Mod Conflict Detection**: Scans and identifies overwrites between mods to streamline conflict management.
+- **Dependency-Aware Sorting**: Automatically sorts mods based on registered dependencies, ensuring they load in the correct order.
+- **Easy Integration for Modders**: Simple setup that doesn’t require interaction with the main repository. Examples can be found [here](https://github.com/themanyfaceddemon/Mod_Loader/blob/master/metadata%20example.xml) and in the [InternalLibrary directory](https://github.com/themanyfaceddemon/Mod_Loader/tree/master/Data/InternalLibrary) (except for `auto_pars` - there is no god there).
+
 ---
 
 ## Requirements
@@ -12,7 +17,7 @@
 
 ## TODO:
 - [ ] Launch barotrauma from the launcher
-- [ ] More internal library so that at least popular and fresh mods are in normal order at the start
+- [x] More internal library so that at least popular and fresh mods are in normal order at the start (In a sense it is done, in https://github.com/themanyfaceddemon/Mod_Loader/pull/5 however it is best to finish it with a file)
 - [x] Localization if hands reach
 
 ## Installation
