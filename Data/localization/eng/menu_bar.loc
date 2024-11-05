@@ -6,3 +6,5 @@ setting-toggle-skip-intro = Toggle auto skip intro
 menu-language = Language
 
 menu-bar-start-game = Start game
+error-game-dir-not-set = Game directory not set!
+error-unknown-os = Unknown operating system

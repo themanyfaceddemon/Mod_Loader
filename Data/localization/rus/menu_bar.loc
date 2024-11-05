@@ -6,3 +6,5 @@ setting-toggle-skip-intro = Включить пропуск интро
 menu-language = Язык
 
 menu-bar-start-game = Запустить игру
+error-game-dir-not-set = Путь к игре не установлен!
+error-unknown-os = Неизвестная операционная система

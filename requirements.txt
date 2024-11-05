@@ -1,3 +1,4 @@
 dearpygui
 pyyaml
 colorama
+requests
