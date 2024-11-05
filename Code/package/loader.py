@@ -19,8 +19,11 @@ class ModLoader:
 
     @classmethod
     def init(cls) -> None:
-        cls.load()
-        atexit.register(cls.save_mods)
+        try:
+            cls.load()
+            atexit.register(cls.save_mods)
+        except Exception as e:
+            logger.error(f"Initialization failed: {e}")
 
     @classmethod
     def _find_package_by_id(cls, package_id: str) -> Optional[Package]:
@@ -110,9 +113,10 @@ class ModLoader:
                 if current_pkg:
                     final_sorted_packages.append(current_pkg)
                 else:
-                    raise ValueError(
+                    logger.error(
                         f"Package with id '{current_id}' not found in active mods or inactive mods"
                     )
+                    continue  # Skip this package and continue processing
 
                 for neighbor in graph[current_id]:
                     indegree[neighbor] -= 1
@@ -120,7 +124,8 @@ class ModLoader:
                         queue.append(neighbor)
 
         if len(final_sorted_packages) != len(indegree):
-            raise ValueError("Unable to resolve dependencies: cycle detected.")
+            logger.error("Unable to resolve dependencies: cycle detected.")
+            # Optionally, you can remove the problematic packages or handle the cycle.
 
         return final_sorted_packages
 
@@ -134,7 +139,15 @@ class ModLoader:
         for pkg in cls.active_mods + cls.inactive_mods:
             pkg.metadata.errors.clear()
             pkg.metadata.warnings.clear()
-            pkg.parse_metadata()
+            try:
+                pkg.parse_metadata()
+            
+            except Exception as e:
+                error_message = f"Failed to parse metadata for {pkg.identifier.id}: {e}"
+                logger.error(error_message)
+                pkg.metadata.errors.append(error_message)
+                continue
+
             cls._process_conflicts(pkg, active_ids)
             cls._check_cs_dll_usage(pkg, install_cs)
             cls._check_lua_usage(pkg, install_lua)
@@ -188,15 +201,18 @@ class ModLoader:
 
     @classmethod
     def sort(cls) -> None:
-        cls.active_mods = cls._sort_active_mods_by_load_order()
-        cls._add_dependencies_from_inactive()
-        graph, indegree = cls._build_dependency_graph()
-        cls.active_mods = cls._topological_sort(graph, indegree)
+        try:
+            cls.active_mods = cls._sort_active_mods_by_load_order()
+            cls._add_dependencies_from_inactive()
+            graph, indegree = cls._build_dependency_graph()
+            cls.active_mods = cls._topological_sort(graph, indegree)
 
-        for index, mod in enumerate(cls.active_mods):
-            mod.metadata.load_order = index + 1
+            for index, mod in enumerate(cls.active_mods):
+                mod.metadata.load_order = index + 1
 
-        cls.process_errors()
+            cls.process_errors()
+        except Exception as e:
+            logger.error(f"Sorting failed: {e}")
 
     @classmethod
     def add_to_active(cls, package: Package, position: Optional[int] = None) -> None:
@@ -252,20 +268,24 @@ class ModLoader:
 
     @classmethod
     def toggle_mod(cls, package_id: str) -> bool:
-        package = cls.find_in_active(package_id)
-        if package:
-            cls.remove_from_active(package_id)
-            cls.add_to_inactive(package)
-            return True
-
-        else:
-            package = cls.find_in_inactive(package_id)
+        try:
+            package = cls.find_in_active(package_id)
             if package:
-                cls.remove_from_inactive(package_id)
-                cls.add_to_active(package)
+                cls.remove_from_active(package_id)
+                cls.add_to_inactive(package)
                 return True
 
-        return False
+            else:
+                package = cls.find_in_inactive(package_id)
+                if package:
+                    cls.remove_from_inactive(package_id)
+                    cls.add_to_active(package)
+                    return True
+
+            return False
+        except Exception as e:
+            logger.error(f"Toggling mod failed: {e}")
+            return False
 
     @classmethod
     def activate_mod(cls, package_id: str) -> bool:
@@ -275,6 +295,7 @@ class ModLoader:
             cls.add_to_active(package)
             return True
 
+        logger.warning(f"Package '{package_id}' not found in inactive mods.")
         return False
 
     @classmethod
@@ -285,6 +306,7 @@ class ModLoader:
             cls.add_to_inactive(package)
             return True
 
+        logger.warning(f"Package '{package_id}' not found in active mods.")
         return False
 
     @classmethod
@@ -317,65 +339,73 @@ class ModLoader:
 
     @classmethod
     def swap_active_mods(cls, package_id: str, target_package_id: str) -> bool:
-        index1 = next(
-            (
-                i
-                for i, pkg in enumerate(cls.active_mods)
-                if pkg.identifier.id == package_id
-            ),
-            None,
-        )
-        index2 = next(
-            (
-                i
-                for i, pkg in enumerate(cls.active_mods)
-                if pkg.identifier.id == target_package_id
-            ),
-            None,
-        )
-
-        if index1 is None or index2 is None:
-            logger.warning(
-                f"Cannot swap active mods: '{package_id}' or '{target_package_id}' not found."
+        try:
+            index1 = next(
+                (
+                    i
+                    for i, pkg in enumerate(cls.active_mods)
+                    if pkg.identifier.id == package_id
+                ),
+                None,
             )
-            return False
+            index2 = next(
+                (
+                    i
+                    for i, pkg in enumerate(cls.active_mods)
+                    if pkg.identifier.id == target_package_id
+                ),
+                None,
+            )
 
-        cls.active_mods[index1], cls.active_mods[index2] = (
-            cls.active_mods[index2],
-            cls.active_mods[index1],
-        )
-        return True
+            if index1 is None or index2 is None:
+                logger.warning(
+                    f"Cannot swap active mods: '{package_id}' or '{target_package_id}' not found."
+                )
+                return False
+
+            cls.active_mods[index1], cls.active_mods[index2] = (
+                cls.active_mods[index2],
+                cls.active_mods[index1],
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Swapping active mods failed: {e}")
+            return False
 
     @classmethod
     def swap_inactive_mods(cls, package_id: str, target_package_id: str) -> bool:
-        index1 = next(
-            (
-                i
-                for i, pkg in enumerate(cls.inactive_mods)
-                if pkg.identifier.id == package_id
-            ),
-            None,
-        )
-        index2 = next(
-            (
-                i
-                for i, pkg in enumerate(cls.inactive_mods)
-                if pkg.identifier.id == target_package_id
-            ),
-            None,
-        )
-
-        if index1 is None or index2 is None:
-            logger.warning(
-                f"Cannot swap inactive mods: '{package_id}' or '{target_package_id}' not found."
+        try:
+            index1 = next(
+                (
+                    i
+                    for i, pkg in enumerate(cls.inactive_mods)
+                    if pkg.identifier.id == package_id
+                ),
+                None,
             )
-            return False
+            index2 = next(
+                (
+                    i
+                    for i, pkg in enumerate(cls.inactive_mods)
+                    if pkg.identifier.id == target_package_id
+                ),
+                None,
+            )
 
-        cls.inactive_mods[index1], cls.inactive_mods[index2] = (
-            cls.inactive_mods[index2],
-            cls.inactive_mods[index1],
-        )
-        return True
+            if index1 is None or index2 is None:
+                logger.warning(
+                    f"Cannot swap inactive mods: '{package_id}' or '{target_package_id}' not found."
+                )
+                return False
+
+            cls.inactive_mods[index1], cls.inactive_mods[index2] = (
+                cls.inactive_mods[index2],
+                cls.inactive_mods[index1],
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Swapping inactive mods failed: {e}")
+            return False
 
     @classmethod
     def move_active_mod_to_end(cls, package_id: str) -> bool:
@@ -388,6 +418,7 @@ class ModLoader:
             None,
         )
         if current_index is None:
+            logger.warning(f"Mod with id '{package_id}' not found in active mods.")
             return False
 
         mod = cls.active_mods.pop(current_index)
@@ -405,6 +436,7 @@ class ModLoader:
             None,
         )
         if current_index is None:
+            logger.warning(f"Mod with id '{package_id}' not found in inactive mods.")
             return False
 
         mod = cls.inactive_mods.pop(current_index)
@@ -425,8 +457,13 @@ class ModLoader:
             )
             return
 
-        tree = ET.parse(str(config_player_path))
-        root = tree.getroot()
+        try:
+            tree = ET.parse(str(config_player_path))
+            root = tree.getroot()
+        except ET.ParseError as e:
+            logger.error(f"Failed to parse {config_player_path}: {e}")
+            return
+
         content_packages = root.find(".//contentpackages")
         if content_packages is None:
             logger.error("Invalid XML structure: <contentpackages> not found.")
@@ -447,22 +484,36 @@ class ModLoader:
 
         barotrauma_deps_json = game_path / "Barotrauma.deps.json"
 
-        with open(barotrauma_deps_json, "r", encoding="utf-8") as file:
-            content = file.read()
-            if "Luatrauma" in content:
-                AppGlobalsAndConfig.set("has_lua", True)
-            else:
+        if barotrauma_deps_json.exists():
+            try:
+                with open(barotrauma_deps_json, "r", encoding="utf-8") as file:
+                    content = file.read()
+                    if "Luatrauma" in content:
+                        AppGlobalsAndConfig.set("has_lua", True)
+                    else:
+                        AppGlobalsAndConfig.set("has_lua", False)
+            except Exception as e:
+                logger.error(f"Failed to read {barotrauma_deps_json}: {e}")
                 AppGlobalsAndConfig.set("has_lua", False)
+        else:
+            AppGlobalsAndConfig.set("has_lua", False)
 
         lua_config = game_path / "LuaCsSetupConfig.xml"
-        if not lua_config.exists():
+        if lua_config.exists():
+            try:
+                tree = ET.parse(str(lua_config))
+                root = tree.getroot()
+                enable_cs_scripting = root.attrib.get(
+                    "EnableCsScripting", "false"
+                ).lower()
+                AppGlobalsAndConfig.set(
+                    "enable_cs_scripting", enable_cs_scripting == "true"
+                )
+            except ET.ParseError as e:
+                logger.error(f"Failed to parse {lua_config}: {e}")
+                AppGlobalsAndConfig.set("enable_cs_scripting", False)
+        else:
             AppGlobalsAndConfig.set("enable_cs_scripting", False)
-            return
-
-        tree = ET.parse(str(lua_config))
-        root = tree.getroot()
-        enable_cs_scripting = root.attrib.get("EnableCsScripting", "false").lower()
-        AppGlobalsAndConfig.set("enable_cs_scripting", enable_cs_scripting == "true")
 
     @classmethod
     def _get_game_path(cls) -> Optional[Path]:
@@ -479,9 +530,12 @@ class ModLoader:
         if local_mods_path.exists():
             for dir in local_mods_path.iterdir():
                 if dir.is_dir() and not dir.name.startswith("."):
-                    obj = Package(dir)
-                    obj.metadata.local = True
-                    cls.add_to_inactive(obj)
+                    try:
+                        obj = Package(dir)
+                        obj.metadata.local = True
+                        cls.add_to_inactive(obj)
+                    except Exception as e:
+                        logger.error(f"Failed to load local mod from {dir}: {e}")
 
     @classmethod
     def _load_regular_packages(
@@ -497,9 +551,12 @@ class ModLoader:
                 pack_path = game_path / pack_path
 
             pack_path = Path(pack_path).parent
-            obj = Package(pack_path)
-            if not cls.activate_mod(obj.identifier.id):
-                cls.add_to_active(obj)
+            try:
+                obj = Package(pack_path)
+                if not cls.activate_mod(obj.identifier.id):
+                    cls.add_to_active(obj)
+            except Exception as e:
+                logger.error(f"Failed to load package from {pack_path}: {e}")
 
     @classmethod
     def _set_install_mod_dir(
@@ -522,55 +579,60 @@ class ModLoader:
                 if mod_path.is_dir():
                     try:
                         obj = Package(mod_path)
+                        if not cls._find_package_by_id(obj.identifier.id):
+                            cls.add_to_inactive(obj)
                     except Exception as err:
                         logger.error(f"Failed to load mod from {mod_path}: {err}")
-                        continue
-
-                    if not cls._find_package_by_id(obj.identifier.id):
-                        cls.add_to_inactive(obj)
+        else:
+            logger.warning(
+                f"Install mod directory does not exist at {install_mod_path}"
+            )
 
     @classmethod
     def save_mods(cls) -> None:
-        unique_mods = {pkg.identifier.id: pkg for pkg in cls.active_mods}.values()
-        cls.active_mods = list(unique_mods)
+        try:
+            unique_mods = {pkg.identifier.id: pkg for pkg in cls.active_mods}.values()
+            cls.active_mods = list(unique_mods)
 
-        game_path = cls._get_game_path()
-        if game_path is None:
-            return
+            game_path = cls._get_game_path()
+            if game_path is None:
+                return
 
-        config_player_path = game_path / "config_player.xml"
-        if not config_player_path.exists():
-            logger.error(
-                f"config_player.xml does not exist!\n| Path: {config_player_path}"
-            )
-            return
-
-        tree = ET.parse(str(config_player_path))
-        root = tree.getroot()
-        content_packages = root.find(".//contentpackages")
-        if content_packages is None:
-            logger.error("Invalid XML structure: <contentpackages> not found.")
-            return
-
-        regular_packages = cls._prepare_regular_packages(content_packages)
-
-        for mod in cls.active_mods:
-            mod_path = mod.path
-            mod_name = mod.identifier.name
-            comment = ET.Comment(f"{mod_name}")
-            regular_packages.append(comment)
-            pack_element = ET.SubElement(regular_packages, "package")
-            if mod.metadata.local:
-                mod_path = str(
-                    Path(*mod_path.parts[mod_path.parts.index("LocalMods") :])
-                    / "filelist.xml"
+            config_player_path = game_path / "config_player.xml"
+            if not config_player_path.exists():
+                logger.error(
+                    f"config_player.xml does not exist!\n| Path: {config_player_path}"
                 )
-            else:
-                mod_path = str(mod_path / "filelist.xml")
+                return
 
-            pack_element.set("path", mod_path)
+            tree = ET.parse(str(config_player_path))
+            root = tree.getroot()
+            content_packages = root.find(".//contentpackages")
+            if content_packages is None:
+                logger.error("Invalid XML structure: <contentpackages> not found.")
+                return
 
-        cls._save_formatted_xml(tree, config_player_path)
+            regular_packages = cls._prepare_regular_packages(content_packages)
+
+            for mod in cls.active_mods:
+                mod_path = mod.path
+                mod_name = mod.identifier.name
+                comment = ET.Comment(f"{mod_name}")
+                regular_packages.append(comment)
+                pack_element = ET.SubElement(regular_packages, "package")
+                if mod.metadata.local:
+                    mod_path = str(
+                        Path(*mod_path.parts[mod_path.parts.index("LocalMods") :])
+                        / "filelist.xml"
+                    )
+                else:
+                    mod_path = str(mod_path / "filelist.xml")
+
+                pack_element.set("path", mod_path)
+
+            cls._save_formatted_xml(tree, config_player_path)
+        except Exception as e:
+            logger.error(f"Saving mods failed: {e}")
 
     @classmethod
     def _prepare_regular_packages(cls, content_packages: ET.Element) -> ET.Element:
@@ -587,12 +649,17 @@ class ModLoader:
     def _save_formatted_xml(
         cls, tree: ET.ElementTree, config_player_path: Path
     ) -> None:
-        rough_string = ET.tostring(tree.getroot(), "utf-8")
-        reparsed = minidom.parseString(rough_string)
-        pretty_xml_as_string = "\n".join(
-            [line for line in reparsed.toprettyxml().splitlines() if line.strip()]
-        )
-        with open(config_player_path, "w", encoding="utf-8") as f:
-            f.write(pretty_xml_as_string)
+        try:
+            rough_string = ET.tostring(tree.getroot(), "utf-8")
+            reparsed = minidom.parseString(rough_string)
+            pretty_xml_as_string = "\n".join(
+                [line for line in reparsed.toprettyxml().splitlines() if line.strip()]
+            )
+            with open(config_player_path, "w", encoding="utf-8") as f:
+                f.write(pretty_xml_as_string)
 
-        logger.info(f"Active mods saved to config_player.xml at {config_player_path}")
+            logger.info(
+                f"Active mods saved to config_player.xml at {config_player_path}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to save XML to {config_player_path}: {e}")
