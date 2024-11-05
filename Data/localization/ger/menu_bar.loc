@@ -1,0 +1,10 @@
+menu-bar-settings-lable = Einstellungen
+
+menu-toggle-experimental = Experiementeller Modus
+setting-toggle-install-lua = Automatische LUA Installation
+setting-toggle-skip-intro = Intro Ueberspringen
+menu-language = Sprache
+
+menu-bar-start-game = Spiel Starten
+error-game-dir-not-set = Kein Installationsverzeichnis angegeben!
+error-unknown-os = Unbekanntes Betriebssystem

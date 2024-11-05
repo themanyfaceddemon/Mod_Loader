@@ -62,7 +62,7 @@ class AppInterface:
             )
 
             dpg.add_combo(
-                items=["eng", "rus"],
+                items=["eng", "rus", "ger"],
                 label=loc.get_string("menu-language"),
                 default_value=AppGlobalsAndConfig.get("lang", "eng"),  # type: ignore
                 callback=lambda s, a: AppGlobalsAndConfig.set("lang", a),
