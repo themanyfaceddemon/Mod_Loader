@@ -17,3 +17,6 @@ venv.bak/
 
 # User config
 [Dd]ata/user_config.json
+
+# Logs
+[Ll]ogs
