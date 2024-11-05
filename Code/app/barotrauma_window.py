@@ -63,6 +63,7 @@ class BarotraumaWindow:
 
             dpg.add_button(
                 label=loc.get_string("base-close"),
+                tag="baro_window_close_bth",
                 callback=lambda: dpg.delete_item("baro_window"),
             )
 
@@ -78,6 +79,7 @@ class BarotraumaWindow:
     def validate_barotrauma_path(sender, app_data, user_data):
         from .mod_window import ModWindow
 
+        dpg.disable_item("baro_window_close_bth")
         path = None
         try:
             path = Path(app_data)
@@ -131,6 +133,8 @@ class BarotraumaWindow:
             dpg.set_value("directory_status_text", path)
 
             logging.debug(f"Path set for display: {path}")
+
+            dpg.enable_item("baro_window_close_bth")
 
         dpg.set_value("barotrauma_cur_path_valid", "False")
         dpg.configure_item("barotrauma_cur_path_valid", color=[255, 0, 0])
@@ -210,7 +214,11 @@ class BarotraumaWindow:
     @staticmethod
     def _select_and_close(sender, app_data, user_data):
         dpg.set_value("barotrauma_input_path", str(user_data))
-        BarotraumaWindow.validate_barotrauma_path(None, str(user_data), None)
+        threading.Thread(
+            target=BarotraumaWindow.validate_barotrauma_path,
+            args=(None, str(user_data), None),
+            daemon=True,
+        ).start()
         dpg.delete_item("exp_game")
 
     @staticmethod
@@ -228,7 +236,7 @@ class BarotraumaWindow:
 
     @staticmethod
     def _should_ignore_directory(entry, current_dir, game_name):
-        ignored_directories = [
+        ignored_directories = {
             "appdata",
             "temp",
             "cache",
@@ -236,34 +244,37 @@ class BarotraumaWindow:
             "backup",
             "bin",
             "obj",
-            "History",
+            "history",
             "httpcache",
-            ".vscode",
             "venv",
-            ".venv",
-            ".nugget",
-            ".git",
-            "_cacache",
             "tmp",
-            "$recycle.bin",
-            ".nuget",
-        ]
+            "programdata",
+        }
 
-        if entry.name.lower() in (dir_name.lower() for dir_name in ignored_directories):
+        entry_name_lower: str = entry.name.lower()
+
+        if (
+            entry_name_lower.startswith((".", "_", "$"))
+            or entry_name_lower in ignored_directories
+        ):
             logger.debug(f"Ignoring directory: {entry}")
             return True
 
-        if current_dir.name.lower() == "steamapps" and entry.name.lower() == "workshop":
-            logger.debug(f"Ignoring directory: {entry} (in steamapps)")
-            return True
+        current_dir_name_lower = current_dir.name.lower()
+        parent_dir_name_lower = (
+            current_dir.parent.name.lower() if current_dir.parent else ""
+        )
 
-        if (
-            current_dir.name.lower() == "common"
-            and current_dir.parent.name.lower() == "steamapps"
-        ):
-            if entry.name.lower() != game_name:
+        if current_dir_name_lower == "steamapps":
+            if entry_name_lower == "workshop":
+                logger.debug(f"Ignoring directory: {entry} (in steamapps)")
+                return True
+            elif (
+                parent_dir_name_lower == "common"
+                and entry_name_lower != game_name.lower()
+            ):
                 logger.debug(
-                    f"Ignoring directory: {entry} (in steamapps\\common, does not match {game_name})"
+                    f"Ignoring directory: {entry} (in steamapps/common, does not match {game_name})"
                 )
                 return True
 
@@ -317,12 +328,13 @@ class BarotraumaWindow:
                 except Exception as e:
                     logger.debug(f"Error processing directory {current_dir}: {e}")
 
+        executable_name = "barotrauma.exe" if os.name == "nt" else "barotrauma"
+
         valid_paths = []
         for path in found_paths:
-            for exec_file in path.glob("*barotrauma*.*"):
-                if exec_file.suffix in [".exe", ".sh", ".app", ".bat"]:
+            for exec_file in path.rglob("*barotrauma*"):
+                if exec_file.name.lower() == executable_name:
                     logger.debug(f"Verified executable in path: {exec_file}")
                     valid_paths.append(path)
-                    break
 
         return valid_paths

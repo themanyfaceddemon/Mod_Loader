@@ -18,9 +18,8 @@ class App:
             logging.error(f"Error during running GUI: {e}")
 
         finally:
-            logging.debug("Destroying context...")
+            logging.debug("Destroying app...")
             dpg.destroy_context()
-            logging.debug("Context destroyed.")
 
     @staticmethod
     def stop() -> None:

@@ -6,7 +6,7 @@
 
 - **Mod Conflict Detection**: Scans and identifies overwrites between mods to streamline conflict management.
 - **Dependency-Aware Sorting**: Automatically sorts mods based on registered dependencies, ensuring they load in the correct order.
-- **Easy Integration for Modders**: Simple setup that doesn’t require interaction with the main repository. Examples can be found [here](https://github.com/themanyfaceddemon/Mod_Loader/blob/master/metadata%20example.xml) and in the [InternalLibrary directory](https://github.com/themanyfaceddemon/Mod_Loader/tree/master/Data/InternalLibrary) (except for `auto_pars` - there is no god there).
+- **Easy Integration for Modders**: Simple setup that doesn’t require interaction with the main repository. Examples can be found [here](./metadata_example.xml) and in the [InternalLibrary directory](./Data/InternalLibrary) (except for `auto_pars` - there is no god there).
 
 ---
 
@@ -16,9 +16,7 @@
 ---
 
 ## TODO:
-- [ ] Launch barotrauma from the launcher
-- [x] More internal library so that at least popular and fresh mods are in normal order at the start (In a sense it is done, in https://github.com/themanyfaceddemon/Mod_Loader/pull/5 however it is best to finish it with a file)
-- [x] Localization if hands reach
+- [ ] System of disabled/enabled parts of modifications depending on installed mods
 
 ## Installation
 

@@ -1,8 +1,9 @@
 import os
-import requests
-from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+
+import requests
+from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 

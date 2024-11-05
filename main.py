@@ -10,7 +10,7 @@ from Code.loc import Localization as loc
 from Code.package import ModLoader
 
 
-class FixedWidthFormatter(logging.Formatter):
+class ColoredFormatter(logging.Formatter):
     COLORS = {
         "DEBUG": Fore.CYAN,
         "INFO": Fore.GREEN,
@@ -20,9 +20,21 @@ class FixedWidthFormatter(logging.Formatter):
     }
 
     def format(self, record):
-        color = self.COLORS.get(record.levelname.strip(), "")
+        color = self.COLORS.get(record.levelname, "")
         record.levelname = f"{color}{record.levelname:<7}{Style.RESET_ALL}"
         return super().format(record)
+
+
+def configure_logging(debug: bool):
+    log_level = logging.DEBUG if debug else logging.INFO
+
+    log_format = "[%(asctime)s][%(levelname)s] %(name)s: %(message)s"
+
+    console_handler = logging.StreamHandler()
+    console_formatter = ColoredFormatter(log_format)
+    console_handler.setFormatter(console_formatter)
+
+    logging.basicConfig(level=log_level, handlers=[console_handler], encoding="utf-8")
 
 
 def init_classes() -> None:
@@ -35,40 +47,28 @@ def main() -> None:
     init_classes()
     logging.debug("Initialization complete. Loading translations...")
 
-    loc.load_translations(
-        Path(
-            AppGlobalsAndConfig.get_data_root()
-            / "localization"
-            / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
-        )
+    localization_path = (
+        Path(AppGlobalsAndConfig.get_data_root())
+        / "localization"
+        / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
     )
+    loc.load_translations(localization_path)
     logging.debug("Translations loaded. Starting app...")
 
-    App()
+    app_instance = App()
     logging.debug("App instance created. Running app...")
-    App.run()
+    app_instance.run()
     logging.debug("App run completed.")
 
 
 if __name__ == "__main__":
     init(autoreset=True)
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true", help="Debug on")
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-
-    handler = logging.StreamHandler()
-    formatter = FixedWidthFormatter(
-        "[%(asctime)s][%(levelname)s] %(name)s: %(message)s"
-    )
-
-    handler.setFormatter(formatter)
-
-    logging.basicConfig(
-        level=log_level,
-        handlers=[handler],
-    )
+    configure_logging(args.debug)
 
     main()
+    logging.debug("I am dead")
