@@ -116,7 +116,7 @@ class ModLoader:
                     logger.error(
                         f"Package with id '{current_id}' not found in active mods or inactive mods"
                     )
-                    continue  # Skip this package and continue processing
+                    continue
 
                 for neighbor in graph[current_id]:
                     indegree[neighbor] -= 1
@@ -125,7 +125,6 @@ class ModLoader:
 
         if len(final_sorted_packages) != len(indegree):
             logger.error("Unable to resolve dependencies: cycle detected.")
-            # Optionally, you can remove the problematic packages or handle the cycle.
 
         return final_sorted_packages
 
@@ -141,7 +140,7 @@ class ModLoader:
             pkg.metadata.warnings.clear()
             try:
                 pkg.parse_metadata()
-            
+
             except Exception as e:
                 error_message = f"Failed to parse metadata for {pkg.identifier.id}: {e}"
                 logger.error(error_message)
