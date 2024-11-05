@@ -216,11 +216,14 @@ class Package:
             self._load_default_metadata_settings()
             return
 
-        internal_library_meta_path = (
-            AppGlobalsAndConfig.get_data_root()
-            / f"InternalLibrary/{self.identifier.steam_id}.xml"
-        )
-        if not internal_library_meta_path.exists():
+        internal_library_path = AppGlobalsAndConfig.get_data_root() / "InternalLibrary"
+        file_name = f"{self.identifier.steam_id}.xml"
+
+        found_files = list(internal_library_path.glob(f"**/{file_name}"))
+
+        if found_files:
+            internal_library_meta_path = found_files[0]
+        else:
             self._load_default_metadata_settings()
             return
 
