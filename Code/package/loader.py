@@ -294,7 +294,6 @@ class ModLoader:
             cls.add_to_active(package)
             return True
 
-        logger.warning(f"Package '{package_id}' not found in inactive mods.")
         return False
 
     @classmethod
@@ -305,7 +304,6 @@ class ModLoader:
             cls.add_to_inactive(package)
             return True
 
-        logger.warning(f"Package '{package_id}' not found in active mods.")
         return False
 
     @classmethod

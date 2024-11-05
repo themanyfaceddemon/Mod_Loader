@@ -81,10 +81,22 @@ class AppInterface:
         viewport_height = dpg.get_viewport_height() - 80
 
         windows = ["mod_window", "baro_window", "exp_game", "game_config_window"]
-        for window in windows:
-            if dpg.does_item_exist(window):
-                dpg.configure_item(window, width=viewport_width, height=viewport_height)
-                dpg_tools.center_window(window)
+        for item in windows:
+            if dpg.does_item_exist(item):
+                dpg.configure_item(item, width=viewport_width, height=viewport_height)
+                dpg_tools.center_window(item)
+
+        half_item = [
+            "active_mod_search_tag",
+            "active_mods_child",
+            "inactive_mod_search_tag",
+            "inactive_mods_child",
+        ]
+        viewport_width = viewport_width / 2
+        viewport_height = viewport_height / 2
+        for item in half_item:
+            if dpg.does_item_exist(item):
+                dpg.configure_item(item, width=viewport_width, height=viewport_height)
 
     @staticmethod
     def start_game():
