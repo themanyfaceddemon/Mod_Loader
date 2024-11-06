@@ -3,7 +3,7 @@ name: Build Executables
 on:
   push:
     branches:
-      - exec 
+      - exec
 
 jobs:
   build:
@@ -24,15 +24,15 @@ jobs:
       - name: Install PyInstaller and dependencies
         run: |
           pip install pyinstaller
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile main.py --paths Code
+          pyinstaller --onefile main.py
         working-directory: ./
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-build
           path: dist/main*
