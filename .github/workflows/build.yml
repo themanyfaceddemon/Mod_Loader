@@ -1,0 +1,38 @@
+name: Build Executables
+
+on:
+  push:
+    branches:
+      - exec 
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12'
+
+      - name: Install PyInstaller and dependencies
+        run: |
+          pip install pyinstaller
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onefile main.py --paths Code
+        working-directory: ./
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.os }}-build
+          path: dist/main*

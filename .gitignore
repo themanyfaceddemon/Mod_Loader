@@ -20,3 +20,7 @@ venv.bak/
 
 # Logs
 [Ll]ogs
+
+# Build
+dist/*
+build/*
