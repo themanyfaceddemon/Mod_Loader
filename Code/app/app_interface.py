@@ -14,6 +14,8 @@ from Code.package import ModLoader
 from .barotrauma_window import BarotraumaWindow
 from .mod_window import ModWindow
 
+logger = logging.getLogger("App")
+
 
 class AppInterface:
     @staticmethod
@@ -139,28 +141,57 @@ class AppInterface:
         }
 
         if system not in urls:
+            logger.error(f"Unsupported OS: {system}")
             AppInterface.show_error(loc.get_string("error-unknown-os"))
             return False
 
         updater_path = os.path.join(game_dir, file_name[system])
+        logger.debug(f"Updater path set to: {updater_path}")
 
         try:
+            logger.debug(f"Attempting to download updater from {urls[system]}")
             response = requests.get(urls[system], stream=True)
             response.raise_for_status()
 
+            total_size = int(response.headers.get("Content-Length", 0))
+            logger.debug(f"Total file size: {total_size} bytes")
+
+            downloaded_size = 0
+            chunk_size = 4092
             with open(updater_path, "wb") as file:
-                for chunk in response.iter_content(chunk_size=8192):
+                logger.debug("Writing updater file in chunks...")
+                for i, chunk in enumerate(response.iter_content(chunk_size=chunk_size)):
                     file.write(chunk)
+                    downloaded_size += len(chunk)
+                    logger.debug(
+                        f"Saved chunk #{i + 1} - {downloaded_size}/{total_size} bytes downloaded ({downloaded_size / total_size * 100:.2f}%)"
+                    )  # TODO: Loading bar
+
+            logger.debug(f"Download completed and saved to {updater_path}")
 
             if system in ["Darwin", "Linux"]:
+                logger.debug(f"Setting execute permissions for {updater_path}")
                 subprocess.run(["chmod", "+x", updater_path], check=True)
+                logger.debug("Execute permissions set.")
 
+            logger.debug(f"Running updater from {updater_path}")
             result = subprocess.run([updater_path], cwd=game_dir)
+            logger.debug(
+                f"Updater process completed with return code: {result.returncode}"
+            )
 
             return result.returncode == 0
 
+        except requests.RequestException as e:
+            logger.error(f"Network error while downloading updater: {e}")
+            return False
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error setting execute permissions: {e}")
+            return False
+
         except Exception as e:
-            logging.error(f"Error downloading or running updater: {e}")
+            logger.error(f"Unexpected error during download or execution: {e}")
             return False
 
     @staticmethod

@@ -231,8 +231,27 @@ class BarotraumaWindow:
             ]
             return path in system_dirs or path.is_relative_to(Path("C:\\Windows"))
         else:
-            system_dirs = [Path("/usr"), Path("/etc"), Path("/bin"), Path("/sbin")]
-            return path in system_dirs or path.is_relative_to(Path("/usr"))
+            system_dirs = [
+                Path("/usr"),
+                Path("/etc"),
+                Path("/bin"),
+                Path("/sys"),
+                Path("/sbin"),
+                Path("/proc"),
+                Path("/dev"),
+                Path("/run"),
+                Path("/tmp"),
+                Path("/var"),
+                Path("/boot"),
+                Path("/lib"),
+                Path("/lib64"),
+                Path("/opt"),
+                Path("/lost+found"),
+                Path("/snap"),
+                Path("/srv"),
+            ]
+
+            return path in system_dirs
 
     @staticmethod
     def _should_ignore_directory(entry, current_dir, game_name):
@@ -251,32 +270,28 @@ class BarotraumaWindow:
             "programdata",
         }
 
-        entry_name_lower: str = entry.name.lower()
+        entry_name_lower = entry.name.lower()
 
-        if (
-            entry_name_lower.startswith((".", "_", "$"))
+        if entry_name_lower != ".steam" and (
+            entry_name_lower.startswith((".", "_", "$", "~"))
             or entry_name_lower in ignored_directories
         ):
             logger.debug(f"Ignoring directory: {entry}")
             return True
 
-        current_dir_name_lower = current_dir.name.lower()
-        parent_dir_name_lower = (
-            current_dir.parent.name.lower() if current_dir.parent else ""
-        )
+        expected_structure = {
+            ".steam": "steam",
+            "steam": "steamapps",
+            "steamapps": "common",
+            "common": game_name.lower(),
+        }
 
-        if current_dir_name_lower == "steamapps":
-            if entry_name_lower == "workshop":
-                logger.debug(f"Ignoring directory: {entry} (in steamapps)")
-                return True
-            elif (
-                parent_dir_name_lower == "common"
-                and entry_name_lower != game_name.lower()
-            ):
-                logger.debug(
-                    f"Ignoring directory: {entry} (in steamapps/common, does not match {game_name})"
-                )
-                return True
+        expected_entry = expected_structure.get(current_dir.name.lower())
+        if expected_entry and entry_name_lower != expected_entry:
+            logger.debug(
+                f"Ignoring directory: {entry} (in {current_dir.name}, not {expected_entry})"
+            )
+            return True
 
         return False
 
@@ -284,9 +299,7 @@ class BarotraumaWindow:
     def _search_all_games_on_all_drives():
         game_name = "barotrauma"
 
-        drives = [
-            Path(drive) for drive in Path("/mnt").glob("*") if drive.is_dir()
-        ] or [
+        drives = [Path(drive) for drive in Path("/").glob("*") if drive.is_dir()] or [
             Path(f"{drive}:\\")
             for drive in string.ascii_uppercase
             if Path(f"{drive}:\\").exists()
@@ -332,7 +345,7 @@ class BarotraumaWindow:
 
         valid_paths = []
         for path in found_paths:
-            for exec_file in path.rglob("*barotrauma*"):
+            for exec_file in path.rglob("[Bb]arotrauma*"):
                 if exec_file.name.lower() == executable_name:
                     logger.debug(f"Verified executable in path: {exec_file}")
                     valid_paths.append(path)
