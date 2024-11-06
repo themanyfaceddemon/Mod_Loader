@@ -5,7 +5,7 @@ import subprocess
 
 import dearpygui.dearpygui as dpg
 import requests
-
+import json
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppGlobalsAndConfig
 from Code.loc import Localization as loc
@@ -63,12 +63,19 @@ class AppInterface:
                 callback=lambda s, a: AppGlobalsAndConfig.set("experimental", a),
             )
 
+            lang_dict = {
+                "eng": loc.get_string("lang_code-eng"),
+                "rus": loc.get_string("lang_code-rus"),
+                "ger": loc.get_string("lang_code-ger"),
+            }
+
             dpg.add_combo(
-                items=["eng", "rus", "ger"],
+                items=list(lang_dict.values()),
                 label=loc.get_string("menu-language"),
-                default_value=AppGlobalsAndConfig.get("lang", "eng"),  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set("lang", a),
-                width=50,
+                default_value=lang_dict[AppGlobalsAndConfig.get("lang", "eng")],  # type: ignore
+                callback=lambda s, a: AppGlobalsAndConfig.set(
+                    "lang", next(key for key, value in lang_dict.items() if value == a)
+                ),
             )
 
         dpg.add_menu_item(
@@ -77,12 +84,24 @@ class AppInterface:
             callback=AppInterface.start_game,
         )
 
+        dpg.add_menu_item(
+            label=loc.get_string("cac-window-name"),
+            parent="main_view_bar",
+            callback=AppInterface.create_cac_window,
+        )
+
     @staticmethod
     def resize_windows():
         viewport_width = dpg.get_viewport_width() - 40
         viewport_height = dpg.get_viewport_height() - 80
 
-        windows = ["mod_window", "baro_window", "exp_game", "game_config_window"]
+        windows = [
+            "mod_window",
+            "baro_window",
+            "exp_game",
+            "game_config_window",
+            "cac_window",
+        ]
         for item in windows:
             if dpg.does_item_exist(item):
                 dpg.configure_item(item, width=viewport_width, height=viewport_height)
@@ -220,3 +239,75 @@ class AppInterface:
         except Exception as e:
             logging.error(f"Error running the game: {e}")
             AppInterface.show_error(f"Error running the game: {e}")
+
+    @staticmethod
+    def create_cac_window():
+        if dpg.does_item_exist("cac_window"):
+            dpg.focus_item("cac_window")
+            return
+
+        contributors_path = AppGlobalsAndConfig.get_data_root() / "contributors.json"
+
+        try:
+            with open(contributors_path, "r", encoding="utf-8") as f:
+                contributors_data = json.load(f)
+
+        except Exception as e:
+            logger.error(f"{contributors_path} just fuck up: {e}")
+            return
+
+        with dpg.window(
+            label=loc.get_string("cac-window-name"),
+            tag="cac_window",
+            no_collapse=True,
+            no_move=True,
+            no_resize=True,
+        ):
+            for category_label, contributors_list in contributors_data.items():
+                with dpg.collapsing_header(
+                    label=loc.get_string(category_label), default_open=True
+                ):
+                    if isinstance(contributors_list, list):
+                        for contributor in contributors_list:
+                            with dpg.group(horizontal=True):
+                                if category_label == "сaс-devs":
+                                    name = contributor.get(
+                                        "name", loc.get_string("base-unknown")
+                                    )
+                                    role = loc.get_string(contributor.get("role", ""))
+                                    dpg.add_text(name, color=(0, 150, 255))
+                                    if role:
+                                        dpg.add_text(
+                                            f"- {role}", color=(200, 200, 200), wrap=0
+                                        )
+
+                                elif category_label == "сaс-translators":
+                                    name = contributor.get(
+                                        "name", loc.get_string("base-unknown")
+                                    )
+                                    code = loc.get_string(
+                                        "cac-translators-thx",
+                                        lang_code=loc.get_string(
+                                            f"lang_code-{contributor.get("code", "")}"
+                                        ),
+                                    )
+                                    dpg.add_text(name, color=(0, 150, 255))
+                                    if code:
+                                        dpg.add_text(
+                                            f"- {code}", color=(200, 200, 200), wrap=0
+                                        )
+
+                                elif category_label == "cac-special-thanks":
+                                    to = contributor.get(
+                                        "to", loc.get_string("base-unknown")
+                                    )
+                                    desc = loc.get_string(
+                                        contributor.get("desc", "base-empty")
+                                    )
+                                    dpg.add_text(to, color=(0, 150, 255))
+                                    if desc:
+                                        dpg.add_text(
+                                            f"- {desc}", color=(200, 200, 200), wrap=0
+                                        )
+
+            AppInterface.resize_windows()
