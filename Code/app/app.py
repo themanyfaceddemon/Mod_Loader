@@ -19,6 +19,7 @@ class App:
 
         finally:
             logging.debug("Destroying app...")
+            App.stop()  # DEBUG This line should help solve https://github.com/themanyfaceddemon/Mod_Loader/issues/13. While I'm watching. Cain
             dpg.destroy_context()
 
     @staticmethod
