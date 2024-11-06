@@ -1,9 +1,7 @@
 name: Build Executables
 
 on:
-  push:
-    branches:
-      - exec
+    workflow_dispatch:
 
 jobs:
   build:
@@ -28,7 +26,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller main.py --add-data "Data;_internal/Data"
+          pyinstaller main.py --add-data=Data:Data
         working-directory: ./
 
       - name: Upload artifact
