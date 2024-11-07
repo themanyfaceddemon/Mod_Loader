@@ -1,0 +1,14 @@
+cac-window-name = Mitwirkende
+
+# Dev thx
+сaс-devs = Entwickler
+cac-dev-thx = Danke für das Entwickeln dieses Programmes! # If only you knew how strange it sounds when you thank yourself. Bruh
+
+# Translators thx
+сaс-translators = Uebersetzer
+cac-translators-thx = Danke fuer die Uebersetzung fuer '{lang_code}'! # I know right -profole
+
+# ETC thx
+cac-special-thanks = Besonderer Dank
+cac-discord-thx = Danke an die Community dieses Discord Servers fuer ihre Hilfe, Feedback und Vorschlaege!
+cac-nebual-special = Danke für die Hilfe beim erstellen einer besseren und flexibleren metadata.xml Struktur!
