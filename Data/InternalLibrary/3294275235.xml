@@ -6,7 +6,7 @@
     </meta>
 
     <dependencies>
-        <requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+        <requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
         <requirement name="Neurotrauma" steamID="3190189044" ID="guns.Neurotrauma" />
     </dependencies>
 </metadata>

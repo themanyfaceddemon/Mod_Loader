@@ -8,6 +8,6 @@
 	</meta>
 	<dependencies>
 		<requirement name="Improved Husks" steamID="2085783214"/>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+		<requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
 	</dependencies>
 </metadata>

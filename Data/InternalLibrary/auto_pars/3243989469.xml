@@ -8,6 +8,6 @@
 	</meta>
 	<dependencies>
 		<requirement name="AVP-Aliens" steamID="2510534927"/>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+		<requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
 	</dependencies>
 </metadata>

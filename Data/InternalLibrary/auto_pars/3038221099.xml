@@ -7,7 +7,7 @@
 		<warning>This dep was automatically generated!</warning>
 	</meta>
 	<dependencies>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+		<requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
 		<requirement name="ZDoors" steamID="2902757031"/>
 		<requirement name="Into The Abyss Cave Parts + CC's (Reload)" steamID="3006364013"/>
 		<requirement name="Portal 2's Back Wall Textures (ModDir Fix)" steamID="3047588676"/>

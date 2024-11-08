@@ -9,6 +9,6 @@
 	<dependencies>
 		<requirement name="Hazardous Reactors" steamID="2547888957"/>
 		<requirement name="Enhanced Reactors" steamID="3045796581"/>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+		<requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
 	</dependencies>
 </metadata>

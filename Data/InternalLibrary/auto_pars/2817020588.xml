@@ -7,7 +7,7 @@
 		<warning>This dep was automatically generated!</warning>
 	</meta>
 	<dependencies>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
+		<requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
 		<requirement name="The Ability To Read" steamID="3277082324"/>
 	</dependencies>
 </metadata>
