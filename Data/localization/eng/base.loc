@@ -6,3 +6,4 @@ base-yes = Yes
 base-start = Start
 base-close = Close
 base-unknown = Unknown
+base-not-specified = Not specified
