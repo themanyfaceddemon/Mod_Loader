@@ -8,7 +8,6 @@ import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package import ModLoader
 
 logger = logging.getLogger("BarotraumaPathProcessor")
 

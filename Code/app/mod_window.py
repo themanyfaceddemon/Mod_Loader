@@ -2,8 +2,7 @@ import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package import ModLoader, Package
-
+from Code.package.dataclasses import ModUnit
 
 class ModWindow:
     dragged_mod_id = None
@@ -139,7 +138,7 @@ class ModWindow:
         )
 
     @staticmethod
-    def add_movable_mod(mod: Package, status: str, parent):
+    def add_movable_mod(mod: ModUnit, status: str, parent):
         mod_group_tag = f"{mod.identifier.id}_{status}_group"
         mod_name_tag = f"{mod.identifier.id}_{status}_text"
 
@@ -226,7 +225,7 @@ class ModWindow:
             dpg.add_separator()
 
     @staticmethod
-    def show_details_window(mod: Package):
+    def show_details_window(mod: ModUnit):
         title = loc.get_string("label-mod-details-title", mod_name=mod.identifier.name)
         window_tag = f"{mod.identifier.id}_full_details_window"
 

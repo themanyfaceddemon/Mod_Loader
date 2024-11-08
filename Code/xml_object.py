@@ -110,24 +110,32 @@ class XMLElement:
 
         content = content.strip()
         i = 0
+        line = 1
 
         if content.startswith("<?xml"):
             i = content.find(">")
-
-        if i == -1:
-            raise XMLParserException("Invalid <?xml>", line=1, position=0)
+            if i == -1:
+                raise XMLParserException("Invalid <?xml>", line=line, position=0)
 
         while i < len(content):
+            if content[i] == "\n":
+                line += 1
+                i += 1
+                continue
+
             if content[i : i + 4] == "<!--":
                 end_comment = content.find("-->", i + 4)
                 if end_comment == -1:
-                    raise XMLParserException("Unclosed comment", position=i)
+                    raise XMLParserException("Unclosed comment", position=i, line=line)
                 comment_text = content[i + 4 : end_comment].strip()
                 comment = XMLComment(comment_text)
                 if stack:
                     stack[-1].add_child(comment)
                 else:
-                    pass  # TODO
+                    raise XMLParserException(
+                        "Content starts with a comment", position=i, line=line
+                    )
+
                 i = end_comment + 3
 
             elif content[i] == "<":
@@ -136,17 +144,21 @@ class XMLElement:
                     tag_start = i + 2
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
-                        raise XMLParserException("Malformed closing tag", position=i)
+                        raise XMLParserException(
+                            "Malformed closing tag", position=i, line=line
+                        )
 
                     tag_name = content[tag_start:tag_end].strip()
                     if not stack or stack[-1].name != tag_name:
                         raise XMLParserException(
-                            "Unexpected closing tag", tag=tag_name, position=i
+                            "Unexpected closing tag",
+                            tag=tag_name,
+                            position=i,
+                            line=line,
                         )
                     closed_element = stack.pop()
                     if not stack:
                         root = closed_element
-
                     else:
                         stack[-1].add_child(closed_element)
                     i = tag_end + 1
@@ -155,7 +167,7 @@ class XMLElement:
                     tag_start = i + 1
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
-                        raise XMLParserException("Malformed tag", position=i)
+                        raise XMLParserException("Malformed tag", position=i, line=line)
 
                     is_self_closing = content[tag_end - 1] == "/"
                     tag_content = content[tag_start:tag_end].strip()
@@ -198,7 +210,7 @@ class XMLElement:
 
         if stack:
             raise XMLParserException(
-                "Unclosed tags remain", tag=stack[-1].name, position=i
+                "Unclosed tags remain", tag=stack[-1].name, position=i, line=line
             )
 
         return root

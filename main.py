@@ -7,7 +7,7 @@ from colorama import Fore, Style, init
 from Code.app import App
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package import ModLoader
+from Code.package.loader import Loader
 
 
 class ColoredFormatter(logging.Formatter):
@@ -39,7 +39,6 @@ def configure_logging(debug: bool):
 
 def init_classes() -> None:
     AppConfig.init()
-    ModLoader.init()
 
 
 def main() -> None:
@@ -53,6 +52,9 @@ def main() -> None:
     loc.load_translations(localization_path)
     logging.debug("Translations loaded. Starting app...")
 
+    Loader.init_data_load()
+
+    return
     app_instance = App()
     logging.debug("App instance created. Running app...")
     app_instance.run()

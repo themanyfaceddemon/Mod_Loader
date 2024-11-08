@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import platform
@@ -5,11 +6,10 @@ import subprocess
 
 import dearpygui.dearpygui as dpg
 import requests
-import json
+
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package import ModLoader
 
 from .barotrauma_window import BarotraumaWindow
 from .mod_window import ModWindow
