@@ -6,7 +6,7 @@ from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader
 
@@ -44,9 +44,7 @@ class BarotraumaWindow:
                     loc.get_string("label-current-path"), color=(100, 150, 250)
                 )
                 dpg.add_text(
-                    AppGlobalsAndConfig.get(
-                        "barotrauma_dir", loc.get_string("base-not-set")
-                    ),  # type: ignore
+                    AppConfig.get("barotrauma_dir", loc.get_string("base-not-set")),  # type: ignore
                     tag="barotrauma_cur_path_text",
                     color=(200, 200, 250),
                 )
@@ -67,7 +65,7 @@ class BarotraumaWindow:
                 callback=lambda: dpg.delete_item("baro_window"),
             )
 
-            if AppGlobalsAndConfig.get("experimental", False):
+            if AppConfig.get("experimental", False):
                 dpg.add_button(
                     label=loc.get_string("btn-experimental-search-game-fold"),
                     callback=BarotraumaWindow._exp_game,
@@ -88,7 +86,7 @@ class BarotraumaWindow:
                 dpg.set_value("barotrauma_cur_path_valid", "True")
                 dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
 
-                AppGlobalsAndConfig.set("barotrauma_dir", str(path))
+                AppConfig.set("barotrauma_dir", str(path))
 
                 logger.info(f"Valid path set: {path}")
 
@@ -103,12 +101,10 @@ class BarotraumaWindow:
 
         finally:
             if not path:
-                path = AppGlobalsAndConfig.get(
-                    "barotrauma_dir", loc.get_string("base-not-set")
-                )
+                path = AppConfig.get("barotrauma_dir", loc.get_string("base-not-set"))
 
-            enable_cs_scripting = AppGlobalsAndConfig.get("enable_cs_scripting")
-            has_lua = AppGlobalsAndConfig.get("has_lua")
+            enable_cs_scripting = AppConfig.get("enable_cs_scripting")
+            has_lua = AppConfig.get("has_lua")
 
             dpg.set_value(
                 "cs_scripting_status",

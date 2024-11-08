@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader, Package
 
@@ -33,9 +33,7 @@ class ModWindow:
                 )
                 dpg.add_text(
                     str(
-                        AppGlobalsAndConfig.get(
-                            "barotrauma_dir", loc.get_string("base-not-set")
-                        )
+                        AppConfig.get("barotrauma_dir", loc.get_string("base-not-set"))
                     ),
                     tag="directory_status_text",
                     color=(200, 200, 250),
@@ -47,11 +45,11 @@ class ModWindow:
                 )
                 dpg.add_text(
                     loc.get_string("base-yes")
-                    if AppGlobalsAndConfig.get("enable_cs_scripting")
+                    if AppConfig.get("enable_cs_scripting")
                     else loc.get_string("base-no"),
                     tag="cs_scripting_status",
                     color=(0, 255, 0)
-                    if AppGlobalsAndConfig.get("enable_cs_scripting")
+                    if AppConfig.get("enable_cs_scripting")
                     else (255, 0, 0),
                 )
 
@@ -61,12 +59,10 @@ class ModWindow:
                 )
                 dpg.add_text(
                     loc.get_string("base-yes")
-                    if AppGlobalsAndConfig.get("has_lua")
+                    if AppConfig.get("has_lua")
                     else loc.get_string("base-no"),
                     tag="lua_status",
-                    color=(0, 255, 0)
-                    if AppGlobalsAndConfig.get("has_lua")
-                    else (255, 0, 0),
+                    color=(0, 255, 0) if AppConfig.get("has_lua") else (255, 0, 0),
                 )
 
             with dpg.group(horizontal=True):
@@ -257,7 +253,9 @@ class ModWindow:
                             loc.get_string("label-author"), color=[0, 102, 204]
                         )
                         dpg.add_text(
-                            mod.metadata.meta.get("author", loc.get_string("base-unknown"))
+                            mod.metadata.meta.get(
+                                "author", loc.get_string("base-unknown")
+                            )
                         )
 
                     with dpg.group(horizontal=True):

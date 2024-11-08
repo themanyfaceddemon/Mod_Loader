@@ -5,7 +5,7 @@ from pathlib import Path
 from colorama import Fore, Style, init
 
 from Code.app import App
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader
 
@@ -38,7 +38,7 @@ def configure_logging(debug: bool):
 
 
 def init_classes() -> None:
-    AppGlobalsAndConfig.init()
+    AppConfig.init()
     ModLoader.init()
 
 
@@ -48,9 +48,7 @@ def main() -> None:
     logging.debug("Initialization complete. Loading translations...")
 
     localization_path = (
-        Path(AppGlobalsAndConfig.get_data_root())
-        / "localization"
-        / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
+        Path(AppConfig.get_data_root()) / "localization" / AppConfig.get("lang", "eng")  # type: ignore
     )
     loc.load_translations(localization_path)
     logging.debug("Translations loaded. Starting app...")

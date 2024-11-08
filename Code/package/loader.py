@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from xml.dom import minidom
 
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 
 from .package import Package
 
@@ -130,8 +130,8 @@ class ModLoader:
 
     @classmethod
     def process_errors(cls) -> None:
-        install_lua = AppGlobalsAndConfig.get("has_lua", False)
-        install_cs = AppGlobalsAndConfig.get("enable_cs_scripting", False)
+        install_lua = AppConfig.get("has_lua", False)
+        install_cs = AppConfig.get("enable_cs_scripting", False)
         active_ids = {pkg.identifier.id for pkg in cls.active_mods}
         overrides_tracking = defaultdict(list)
 
@@ -475,7 +475,7 @@ class ModLoader:
 
         cls._load_regular_packages(regular_packages, game_path)
         cls._set_install_mod_dir(regular_packages, config_player_path)
-        install_mod_path = AppGlobalsAndConfig.get("barotrauma_install_mod_dir")
+        install_mod_path = AppConfig.get("barotrauma_install_mod_dir")
         if install_mod_path:
             cls._load_installed_mods(Path(install_mod_path))
 
@@ -486,14 +486,14 @@ class ModLoader:
                 with open(barotrauma_deps_json, "r", encoding="utf-8") as file:
                     content = file.read()
                     if "Luatrauma" in content:
-                        AppGlobalsAndConfig.set("has_lua", True)
+                        AppConfig.set("has_lua", True)
                     else:
-                        AppGlobalsAndConfig.set("has_lua", False)
+                        AppConfig.set("has_lua", False)
             except Exception as e:
                 logger.error(f"Failed to read {barotrauma_deps_json}: {e}")
-                AppGlobalsAndConfig.set("has_lua", False)
+                AppConfig.set("has_lua", False)
         else:
-            AppGlobalsAndConfig.set("has_lua", False)
+            AppConfig.set("has_lua", False)
 
         lua_config = game_path / "LuaCsSetupConfig.xml"
         if lua_config.exists():
@@ -503,18 +503,16 @@ class ModLoader:
                 enable_cs_scripting = root.attrib.get(
                     "EnableCsScripting", "false"
                 ).lower()
-                AppGlobalsAndConfig.set(
-                    "enable_cs_scripting", enable_cs_scripting == "true"
-                )
+                AppConfig.set("enable_cs_scripting", enable_cs_scripting == "true")
             except ET.ParseError as e:
                 logger.error(f"Failed to parse {lua_config}: {e}")
-                AppGlobalsAndConfig.set("enable_cs_scripting", False)
+                AppConfig.set("enable_cs_scripting", False)
         else:
-            AppGlobalsAndConfig.set("enable_cs_scripting", False)
+            AppConfig.set("enable_cs_scripting", False)
 
     @classmethod
     def _get_game_path(cls) -> Optional[Path]:
-        game_path = AppGlobalsAndConfig.get("barotrauma_dir")
+        game_path = AppConfig.get("barotrauma_dir")
         if game_path is None:
             logger.error("Game path not set in AppGlobalsAndConfig.")
             return None
@@ -559,11 +557,11 @@ class ModLoader:
     def _set_install_mod_dir(
         cls, regular_packages: ET.Element, config_player_path: Path
     ) -> None:
-        if not AppGlobalsAndConfig.get("barotrauma_install_mod_dir"):
+        if not AppConfig.get("barotrauma_install_mod_dir"):
             for pack_element in regular_packages:
                 pack_path = pack_element.attrib.get("path")
                 if pack_path and not pack_path.startswith("LocalMods"):
-                    AppGlobalsAndConfig.set(
+                    AppConfig.set(
                         "barotrauma_install_mod_dir",
                         str(Path(pack_path).parent.parent),
                     )

@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional, Union
 
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 
 from .identifier import Identifier
@@ -216,7 +216,7 @@ class Package:
             self._load_default_metadata_settings()
             return
 
-        internal_library_path = AppGlobalsAndConfig.get_data_root() / "InternalLibrary"
+        internal_library_path = AppConfig.get_data_root() / "InternalLibrary"
         file_name = f"{self.identifier.steam_id}.xml"
 
         found_files = list(internal_library_path.glob(f"**/{file_name}"))

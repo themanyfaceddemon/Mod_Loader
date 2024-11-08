@@ -7,7 +7,7 @@ import dearpygui.dearpygui as dpg
 import requests
 import json
 import Code.dpg_tools as dpg_tools
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package import ModLoader
 
@@ -42,25 +42,21 @@ class AppInterface:
             dpg.add_checkbox(
                 label=loc.get_string("setting-toggle-install-lua"),
                 tag="settings_install_lua",
-                default_value=AppGlobalsAndConfig.get("game_config_auto_lua", False),  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set(
-                    "game_config_auto_lua", a
-                ),
+                default_value=AppConfig.get("game_config_auto_lua", False),  # type: ignore
+                callback=lambda s, a: AppConfig.set("game_config_auto_lua", a),
             )
 
             dpg.add_checkbox(
                 label=loc.get_string("setting-toggle-skip-intro"),
                 tag="settings_skip_intro",
-                default_value=AppGlobalsAndConfig.get("game_config_skip_intro", False),  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set(
-                    "game_config_skip_intro", a
-                ),
+                default_value=AppConfig.get("game_config_skip_intro", False),  # type: ignore
+                callback=lambda s, a: AppConfig.set("game_config_skip_intro", a),
             )
 
             dpg.add_checkbox(
                 label=loc.get_string("menu-toggle-experimental"),
-                default_value=AppGlobalsAndConfig.get("experimental", False),  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set("experimental", a),
+                default_value=AppConfig.get("experimental", False),  # type: ignore
+                callback=lambda s, a: AppConfig.set("experimental", a),
             )
 
             lang_dict = {
@@ -72,8 +68,8 @@ class AppInterface:
             dpg.add_combo(
                 items=list(lang_dict.values()),
                 label=loc.get_string("menu-language"),
-                default_value=lang_dict[AppGlobalsAndConfig.get("lang", "eng")],  # type: ignore
-                callback=lambda s, a: AppGlobalsAndConfig.set(
+                default_value=lang_dict[AppConfig.get("lang", "eng")],  # type: ignore
+                callback=lambda s, a: AppConfig.set(
                     "lang", next(key for key, value in lang_dict.items() if value == a)
                 ),
             )
@@ -123,13 +119,13 @@ class AppInterface:
     def start_game():
         ModLoader.save_mods()
 
-        game_dir = AppGlobalsAndConfig.get("barotrauma_dir", None)
+        game_dir = AppConfig.get("barotrauma_dir", None)
         if not game_dir:
             AppInterface.show_error(loc.get_string("error-game-dir-not-set"))
             return
 
-        skip_intro = AppGlobalsAndConfig.get("game_config_skip_intro", False)
-        auto_install_lua = AppGlobalsAndConfig.get("game_config_auto_lua", False)
+        skip_intro = AppConfig.get("game_config_skip_intro", False)
+        auto_install_lua = AppConfig.get("game_config_auto_lua", False)
 
         if auto_install_lua:
             if AppInterface.download_and_run_updater(game_dir):
@@ -246,7 +242,7 @@ class AppInterface:
             dpg.focus_item("cac_window")
             return
 
-        contributors_path = AppGlobalsAndConfig.get_data_root() / "contributors.json"
+        contributors_path = AppConfig.get_data_root() / "contributors.json"
 
         try:
             with open(contributors_path, "r", encoding="utf-8") as f:

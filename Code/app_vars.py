@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-class AppGlobalsAndConfig:
+class AppConfig:
     user_config: Dict[str, Any] = {}
 
     _root: Path = Path(__file__).parents[1]
