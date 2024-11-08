@@ -279,31 +279,10 @@ class XMLObject:
         return ""
 
     @staticmethod
-    def load_file(path: Union[Path, str], encoding: str = "utf-8") -> "XMLObject":
+    def load_file(path: Union[Path, str], encoding: str = "utf-8-sig") -> "XMLObject":
         path = Path(path)
         with open(path, "r", encoding=encoding) as file:
             content = file.read()
         obj = XMLObject()
         obj.root = XMLElement.build_element(content)
         return obj
-
-
-def main():
-    try:
-        test = XMLObject.load_file(Path("Data/InternalLibrary/3247838390.xml"))
-        print(test.dump())
-        print("---")
-
-        test.replace_element_with_comment("dependencies")
-        print(test.dump())
-        print("---")
-
-        test.replace_comment_with_element("dependencies")
-        print(test.dump())
-
-    except XMLParserException as e:
-        print(f"XML Error: {e}")
-
-
-if __name__ == "__main__":
-    main()
