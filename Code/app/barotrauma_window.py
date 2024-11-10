@@ -102,18 +102,16 @@ class BarotraumaWindow:
             if not path:
                 path = AppConfig.get("barotrauma_dir", loc.get_string("base-not-set"))
 
-            enable_cs_scripting = AppConfig.get("enable_cs_scripting")
+            has_cs = AppConfig.get("has_cs")
             has_lua = AppConfig.get("has_lua")
 
             dpg.set_value(
                 "cs_scripting_status",
-                loc.get_string("base-yes")
-                if enable_cs_scripting
-                else loc.get_string("base-no"),
+                loc.get_string("base-yes") if has_cs else loc.get_string("base-no"),
             )
             dpg.configure_item(
                 "cs_scripting_status",
-                color=[0, 255, 0] if enable_cs_scripting else [255, 0, 0],
+                color=[0, 255, 0] if has_cs else [255, 0, 0],
             )
 
             dpg.set_value(

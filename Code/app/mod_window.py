@@ -4,6 +4,7 @@ from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package.dataclasses import ModUnit
 
+
 class ModWindow:
     dragged_mod_id = None
     active_mod_search_text = ""
@@ -44,12 +45,10 @@ class ModWindow:
                 )
                 dpg.add_text(
                     loc.get_string("base-yes")
-                    if AppConfig.get("enable_cs_scripting")
+                    if AppConfig.get("has_cs")
                     else loc.get_string("base-no"),
                     tag="cs_scripting_status",
-                    color=(0, 255, 0)
-                    if AppConfig.get("enable_cs_scripting")
-                    else (255, 0, 0),
+                    color=(0, 255, 0) if AppConfig.get("has_cs") else (255, 0, 0),
                 )
 
             with dpg.group(horizontal=True):

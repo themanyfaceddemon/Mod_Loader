@@ -1,16 +1,19 @@
+import logging
 from pathlib import Path
 from typing import List
-from .dataclasses import Identifier, Dependencie, Metadata, ModUnit
+
 from Code.app_vars import AppConfig
-import logging
-from Code.xml_object import XMLObject, XMLComment, XMLElement, XMLParserException
+from Code.xml_object import (XMLComment, XMLElement, XMLObject,
+                             XMLParserException)
+
+from .dataclasses import Dependencie, Identifier, Metadata, ModUnit
 
 logger = logging.getLogger("Loader")
 
 
 class Loader:
-    active_mod: List[ModUnit]
-    inactive_mod: List[ModUnit]
+    active_mod: List[ModUnit] = []
+    inactive_mod: List[ModUnit] = []
 
     @staticmethod
     def init_data_load():
@@ -41,17 +44,10 @@ class Loader:
         if not obj.root:
             logger.error(f"Invalid config_player.xml!\n|Path: {path_to_config_player}")
 
-        regular_packages = obj.find("regularpackages")
-        if not regular_packages:
-            return  # TODO: It's too bad we didn't find any regular packages. That's going to be a problem.
-
-        regular_packages = regular_packages[0]
-
-        if isinstance(regular_packages, XMLComment):
-            return
+        packages = obj.find("package")
 
         i = 1
-        for package in regular_packages.children:
+        for package in packages:
             if isinstance(package, XMLComment):
                 continue
 
@@ -73,5 +69,31 @@ class Loader:
     @staticmethod
     def load_lua_config(path_to_game: Path):
         if not path_to_game.exists():
-            logger.error(f"Game path dont exists!\n|Path: {path_to_game}")
+            logger.error(f"Game path does not exist: {path_to_game}")
             return
+
+        config_path = path_to_game / "LuaCsSetupConfig.xml"
+        if config_path.exists():
+            xml_obj = XMLObject.load_file(config_path).root
+            has_cs = (
+                xml_obj.attributes.get("EnableCsScripting", "false").lower() == "true"
+                if xml_obj
+                else False
+            )
+            AppConfig.set("has_cs", has_cs)
+            logger.debug(f"CS scripting enabled: {has_cs}")
+
+        else:
+            AppConfig.set("has_cs", False)
+            logger.debug("LuaCsSetupConfig.xml not found, disabling CS scripting.")
+
+        lua_dep_path = path_to_game / "Barotrauma.deps.json"
+        if lua_dep_path.exists():
+            with open(lua_dep_path, "r", encoding="utf-8") as file:
+                has_lua = "Luatrauma" in file.read()
+                AppConfig.set("has_lua", has_lua)
+                logger.debug(f"Lua support enabled: {has_lua}")
+
+        else:
+            AppConfig.set("has_lua", False)
+            logger.debug("Barotrauma.deps.json not found, disabling Lua support.")

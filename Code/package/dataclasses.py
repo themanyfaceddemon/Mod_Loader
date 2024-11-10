@@ -2,7 +2,12 @@ from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
+
 from Code.app_vars import AppConfig
+from Code.xml_object import XMLComment, XMLElement, XMLObject
+from .id_parser import IDParser
+
+logger = logging.getLogger("ModBuild")
 
 
 @dataclass
@@ -109,6 +114,9 @@ class ModUnit(Identifier):
 
     metadata: Metadata
 
+    use_lua: bool
+    use_cs: bool
+
     add_id: set[str]
     override_id: set[str]
 
@@ -120,6 +128,8 @@ class ModUnit(Identifier):
             False,
             None,
             Metadata.create_empty(),
+            False,
+            False,
             set(),
             set(),
         )
@@ -136,10 +146,62 @@ class ModUnit(Identifier):
             if new_path is None:
                 raise ValueError("Game dir not set!")
 
-            path = Path(new_path)
+            path = Path(new_path / path)
 
-        # TODO: get name, steamID viva filelist.xml
+        ModUnit.parse_filelist(obj, path)
 
-        # TODO: Build metadata
+        obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
+        obj.use_cs = any(
+            [
+                ModUnit.has_file(path, ".[Cc][Ss]"),
+                ModUnit.has_file(path, ".[Dd][Ll][Ll]"),
+            ]
+        )
 
-        # TODO: Get add_id and override_id
+        ModUnit.parse_files(obj, path)
+
+        return obj
+
+    @staticmethod
+    def has_file(path: Path, extension: str) -> bool:
+        for file in path.rglob(f"*{extension}"):
+            return True
+
+        return False
+
+    @staticmethod
+    def parse_filelist(obj: "ModUnit", path: Path) -> None:
+        file_list_path = path / "filelist.xml"
+        if not file_list_path.exists():
+            raise ValueError(f"{file_list_path} don't exsist")
+
+        xml_obj = XMLObject.load_file(file_list_path)
+        if not xml_obj.root:
+            raise ValueError(f"{file_list_path} invalid xml struct")
+
+        xml_obj = xml_obj.root
+        obj.name = xml_obj.attributes.get("name", "Something went rong")
+        obj.steam_id = xml_obj.attributes.get("steamworkshopid")
+        obj.metadata.game_version = xml_obj.attributes.get(
+            "gameversion", "base-not-specified"
+        )
+        obj.metadata.mod_version = xml_obj.attributes.get(
+            "modversion", "base-not-specified"
+        )
+
+    @staticmethod
+    def parse_files(obj: "ModUnit", path: Path) -> None:
+        xml_files_paths = path.rglob("*.[Xx][Mm][Ll]")
+
+        for xml_file_path in xml_files_paths:
+            try:
+                xml_obj = XMLObject.load_file(xml_file_path)
+                if not xml_obj.root:
+                    logger.warning(f"File {xml_file_path} is empty")
+                    continue
+
+                xml_obj = xml_obj.root
+
+                # TODO
+            except Exception as err:
+                logger.error(err)

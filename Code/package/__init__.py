@@ -1,1 +1,1 @@
-from .dataclasses import Identifier, Dependencie, Metadata
+from .dataclasses import Dependencie, Identifier, Metadata
