@@ -29,6 +29,8 @@ class AppConfig:
 
     @classmethod
     def _save_user_config(cls) -> None:
+        cls.user_config.pop("debug")
+
         with open(cls._user_config_path, "w", encoding="utf-8") as file:
             json.dump(cls.user_config, file, indent=4, sort_keys=True)
 

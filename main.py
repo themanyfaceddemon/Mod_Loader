@@ -37,13 +37,14 @@ def configure_logging(debug: bool):
     logging.basicConfig(level=log_level, handlers=[console_handler], encoding="utf-8")
 
 
-def init_classes() -> None:
+def init_classes(debug: bool) -> None:
     AppConfig.init()
+    AppConfig.set("debug", False)
 
 
-def main() -> None:
+def main(debug: bool) -> None:
     logging.debug("Starting initialization of classes...")
-    init_classes()
+    init_classes(debug)
     logging.debug("Initialization complete. Loading translations...")
 
     localization_path = (
@@ -70,5 +71,5 @@ if __name__ == "__main__":
 
     configure_logging(args.debug)
 
-    main()
+    main(args.debug)
     logging.debug("I am dead")

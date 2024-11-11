@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 from pathlib import Path
+import re
 from typing import Dict, List, Literal, Optional
 
 from Code.app_vars import AppConfig
@@ -194,6 +195,13 @@ class ModUnit(Identifier):
         xml_files_paths = path.rglob("*.[Xx][Mm][Ll]")
 
         for xml_file_path in xml_files_paths:
+            if xml_file_path.name.lower() in [
+                "filelist.xml",
+                "metadata.xml",
+                "file_list.xml",
+            ]:
+                continue
+
             try:
                 xml_obj = XMLObject.load_file(xml_file_path)
                 if not xml_obj.root:
@@ -202,6 +210,9 @@ class ModUnit(Identifier):
 
                 xml_obj = xml_obj.root
 
-                # TODO
+                add_id, override_id = IDParser.get_ids(xml_obj)
+                obj.add_id.update(add_id)
+                obj.override_id.update(override_id)
+
             except Exception as err:
                 logger.error(err)

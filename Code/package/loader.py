@@ -3,8 +3,7 @@ from pathlib import Path
 from typing import List
 
 from Code.app_vars import AppConfig
-from Code.xml_object import (XMLComment, XMLElement, XMLObject,
-                             XMLParserException)
+from Code.xml_object import XMLComment, XMLElement, XMLObject, XMLParserException
 
 from .dataclasses import Dependencie, Identifier, Metadata, ModUnit
 
@@ -48,23 +47,27 @@ class Loader:
 
         i = 1
         for package in packages:
-            if isinstance(package, XMLComment):
-                continue
-
-            elif package.name == "package":
-                path = package.attributes.get("path", None)
-                if path is None:
+            try:
+                if isinstance(package, XMLComment):
                     continue
 
-                path = Path(path).parent
-                mod = ModUnit.build_by_path(path)
-                if mod is None:
-                    logger.error(f"Can not build mod whith path:{path}")
-                    continue
+                elif package.name == "package":
+                    path = package.attributes.get("path", None)
+                    if path is None:
+                        continue
 
-                mod.load_order = i
-                Loader.active_mod.append(mod)
-                i += 1
+                    path = Path(path).parent
+                    mod = ModUnit.build_by_path(path)
+                    if mod is None:
+                        logger.error(f"Can not build mod whith path:{path}")
+                        continue
+
+                    mod.load_order = i
+                    Loader.active_mod.append(mod)
+                    i += 1
+
+            except Exception as err:
+                logger.error(err)
 
     @staticmethod
     def load_lua_config(path_to_game: Path):
