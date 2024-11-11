@@ -131,10 +131,17 @@ class XMLElement:
                 comment = XMLComment(comment_text)
                 if stack:
                     stack[-1].add_child(comment)
-                else:
-                    raise XMLParserException(
-                        "Content starts with a comment", position=i, line=line
-                    )
+                # ignore for now
+                # else:
+                # raise XMLParserException(
+                #    f"Content starts with a comment\n|Content: {content}",
+                #    position=i,
+                #    line=line,
+                # )
+                ## WARNING: This is valid struct
+                ## <!--COLD CAVERNS-->
+                ## <levelobjects>
+                ## </levelobjects>
 
                 i = end_comment + 3
 

@@ -215,4 +215,4 @@ class ModUnit(Identifier):
                 obj.override_id.update(override_id)
 
             except Exception as err:
-                logger.error(err)
+                logger.error(str(err) + f"\n|Mod: {obj!r}")
