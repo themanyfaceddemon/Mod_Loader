@@ -236,22 +236,34 @@ class XMLElement:
 
         return root
 
-    def find(self, pattern: str) -> List[Union["XMLElement", XMLComment]]:
-        compiled_pattern = re.compile(pattern)
+    def find(
+        self, pattern: str, exact_match: bool = False
+    ) -> List[Union["XMLElement", XMLComment]]:
         result = []
 
         def match_element(element: XMLElement):
-            if compiled_pattern.search(element.name):
+            if exact_match:
+                name_matches = element.name == pattern
+                attr_matches = pattern in element.attributes.values()
+                comment_matches = lambda text: text == pattern  # noqa: E731
+            else:
+                compiled_pattern = re.compile(pattern)
+                name_matches = compiled_pattern.search(element.name) is not None
+                attr_matches = any(
+                    compiled_pattern.search(value)
+                    for value in element.attributes.values()
+                )
+                comment_matches = lambda text: compiled_pattern.search(text) is not None  # noqa: E731
+
+            if name_matches or attr_matches:
                 result.append(element)
-            elif any(
-                compiled_pattern.search(value) for value in element.attributes.values()
-            ):
-                result.append(element)
+
             for child in element.childrens:
                 if isinstance(child, XMLElement):
                     match_element(child)
+
                 elif isinstance(child, XMLComment):
-                    if compiled_pattern.search(child.text):
+                    if comment_matches(child.text):
                         result.append(child)
 
         match_element(self)

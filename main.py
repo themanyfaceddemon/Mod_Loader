@@ -39,7 +39,7 @@ def configure_logging(debug: bool):
 
 def init_classes(debug: bool) -> None:
     AppConfig.init()
-    AppConfig.set("debug", False)
+    AppConfig.set("debug", debug)
 
 
 def main(debug: bool) -> None:

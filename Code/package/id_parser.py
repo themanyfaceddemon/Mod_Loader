@@ -17,113 +17,56 @@ class IDParserUnit:
         return IDParserUnit(set(), set())
 
 
-def get_items_identifier(element: XMLElement, *args, **kwargs):
-    id_l = []
-
-    for elem in element.iter_non_comment_childrens():
-        children = (
+def _get_identifiers_for_list(prefix: str, identifier_key: str = "identifier"):
+    return lambda element, *args, **kwargs: [
+        f"{prefix}.{child.attributes.get(identifier_key, child.name)}"
+        for elem in element.iter_non_comment_childrens()
+        for child in (
             elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
         )
-
-        id_l.extend(
-            f'Item.{child.attributes.get("identifier", child.name)}'
-            for child in children
-        )
-
-    return id_l
+    ]
 
 
-def get_afflictions_identifier(element: XMLElement, *args, **kwargs):
-    id_l = []
-
-    for elem in element.iter_non_comment_childrens():
-        children = (
-            elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
-        )
-
-        id_l.extend(
-            f'Affliction.{child.attributes.get("identifier", child.name)}'
-            for child in children
-        )
-
-    return id_l
+_get_afflictions_identifier = _get_identifiers_for_list("Affliction")
+_get_backgroundcreatures_identifier = _get_identifiers_for_list("BackgroundCreature")
+_get_items_identifier = _get_identifiers_for_list("Item")
+_get_levelgenerationparameters_identifier = _get_identifiers_for_list(
+    "LevelGenerationParameter"
+)
+_get_levelobjects_identifier = _get_identifiers_for_list("LevelObjects")
+_get_locationtypes_identifier = _get_identifiers_for_list("LocationType")
+_get_missions_identifier = _get_identifiers_for_list("Mission")
+_get_prefabs_identifier = _get_identifiers_for_list("Prefab")
+_get_sounds_identifier = _get_identifiers_for_list("Sound")
 
 
-def get_sounds_identifier(element: XMLElement, *args, **kwargs):
-    id_l = []
-
-    for elem in element.iter_non_comment_childrens():
-        children = (
-            elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
-        )
-
-        id_l.extend(f"Sound.{child.name}" for child in children)
-
-    return id_l
+def _get_identifier(prefix: str, identifier: str = "identifier"):
+    return (
+        lambda element,
+        *args,
+        **kwargs: f"{prefix}.{element.attributes.get(identifier, element.name)}"
+    )
 
 
-def get_levelgenerationparameters_identifier(element: XMLElement, *args, **kwargs):
-    id_l = []
-
-    for elem in element.iter_non_comment_childrens():
-        children = (
-            elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
-        )
-
-        id_l.extend(
-            f"LevelGenerationParameter.{child.attributes.get('identifier', child.name)}"
-            for child in children
-        )
-
-    return id_l
-
-
-def get_item_identifier(element: XMLElement, *args, **kwargs):
-    return f'Item.{element.attributes.get("identifier", element.name)}'
-
-
-def get_talent_identifier(element: XMLElement, *args, **kwargs):
-    return f'Talant.{element.attributes.get("identifier", element.name)}'
-
-
-def get_character_indefier(element: XMLElement, *args, **kwargs):
-    return f'Character.{element.attributes.get("SpeciesName", element.name)}'
-
-
-def get_affliction_identifier(element: XMLElement, *args, **kwargs):
-    return f'Affliction.{element.attributes.get("identifier", element.name)}'
-
-
-def get_ragdoll_indefier(element: XMLElement, *args, **kwargs):
-    return f'Ragdoll.{element.attributes.get("type")}'
-
-
-def get_style_indefier(element: XMLElement, *args, **kwargs):
-    return "Style"
-
-
-def get_talenttree_identifier(element: XMLElement, *args, **kwargs):
-    return f'TalentTree.{element.attributes.get('jobidentifier')}'
-
-
-def get_charactervariant_identifier(element: XMLElement, *args, **kwargs):
-    return f'Charactervariant.{element.attributes.get('speciesname')}'
-
-
-def get_upgrademodule_identifier(element: XMLElement, *args, **kwargs):
-    return f'UpgradeModule.{element.attributes.get('identifier')}'
-
-
-def get_npcset_indefier(element: XMLElement, *args, **kwargs):
-    return f'npcset.{element.attributes.get('identifier')}'
-
-
-def get_scriptedevent_identifier(element: XMLElement, *args, **kwargs):
-    return f'ScriptedEvent.{element.attributes.get('identifier')}'
-
-
-def get_eventset_identifier(element: XMLElement, *args, **kwargs):
-    return f'EventSet.{element.attributes.get('identifier')}'
+_get_affliction_identifier = _get_identifier("Affliction")
+_get_cave_identifier = _get_identifier("Cave")
+_get_character_indefier = _get_identifier("Character", "SpeciesName")
+_get_charactervariant_identifier = _get_identifier("Charactervariant", "speciesname")
+_get_conversations_identifier = _get_identifier("Conversations")
+_get_corpse_identifier = _get_identifier("Corpse")
+_get_eventset_identifier = _get_identifier("EventSet")
+_get_eventsprites_identifier = _get_identifier("EventSprite")
+_get_faction_identifier = _get_identifier("Faction")
+_get_item_identifier = _get_identifier("Item")
+_get_job_identifier = _get_identifier("Job")
+_get_npcset_indefier = _get_identifier("NPCSet")
+_get_order_identifier = _get_identifier("Order")
+_get_outpostconfig_identifier = _get_identifier("OutpostConfig")
+_get_ragdoll_indefier = _get_identifier("Ragdoll", "type")
+_get_scriptedevent_identifier = _get_identifier("ScriptedEvent")
+_get_talent_identifier = _get_identifier("Talant")
+_get_talenttree_identifier = _get_identifier("TalentTree", "jobidentifier")
+_get_upgrademodule_identifier = _get_identifier("UpgradeModule")
 
 
 def iterate_children(element: XMLElement, stack: List[XMLElement], *args, **kwargs):
@@ -148,38 +91,65 @@ def is_animation(element: XMLElement) -> Optional[str]:
 
 class IDParser:
     processing_rules = {
-        "affliction": get_affliction_identifier,
-        "afflictions": get_afflictions_identifier,
-        "character": get_character_indefier,
+        "affliction": _get_affliction_identifier,
+        "afflictions": _get_afflictions_identifier,
+        "backgroundcreatures": _get_backgroundcreatures_identifier,
+        "campaignsettingpresets": ignore,  # Cain: Maybe I'm wrong
+        "cave": _get_cave_identifier,
+        "cavegenerationparameters": iterate_children,
+        "character": _get_character_indefier,
+        "charactervariant": _get_charactervariant_identifier,
+        "clientpermissions": ignore,  # Cain: Maybe I'm wrong
+        "conversations": _get_conversations_identifier,
+        "corpse": _get_corpse_identifier,
+        "corpses": iterate_children,
         "doc": ignore,
+        "eventprefabs": iterate_children,
+        "eventset": _get_eventset_identifier,
+        "eventsprites": _get_eventsprites_identifier,
+        "faction": _get_faction_identifier,
+        "factions": iterate_children,
+        "hintmanager": ignore,  # Cain: wtf?
+        "huskappendage": ignore,  # Cain: Maybe I'm wrong
         "infotext": ignore,
         "infotexts": ignore,
-        "item": get_item_identifier,
-        "items": get_items_identifier,
-        "override": iterate_children,
-        "ragdoll": get_ragdoll_indefier,
-        "sounds": get_sounds_identifier,
-        "style": get_style_indefier,
-        "talent": get_talent_identifier,
-        "talents": iterate_children,
-        "talenttrees": iterate_children,
-        "charactervariant": get_charactervariant_identifier,
-        "runconfig": ignore,
+        "item": _get_item_identifier,
         "itemassembly": ignore,  # Cain: Maybe I'm wrong
-        "huskappendage": ignore,  # Cain: Maybe I'm wrong
-        "talenttree": get_talenttree_identifier,
-        "upgrademodules": iterate_children,
-        "upgradecategory": ignore,  # Cain: Maybe I'm wrong
-        "upgrademodule": get_upgrademodule_identifier,
+        "items": _get_items_identifier,
+        "job": _get_job_identifier,
+        "jobs": iterate_children,
         "karmamanager": ignore,  # Cain: Maybe I'm wrong
+        "levelgenerationparameters": _get_levelgenerationparameters_identifier,
+        "levelobjects": _get_levelobjects_identifier,
+        "locationtypes": _get_locationtypes_identifier,
+        "mapgenerationparameters": lambda *args, **kwargs: "MapGenerationParameters",
         "member": ignore,  # Cain: from doc
+        "missions": _get_missions_identifier,
+        "npcset": _get_npcset_indefier,
         "npcsets": iterate_children,
-        "npcset": get_npcset_indefier,
+        "options": ignore,
+        "order": _get_order_identifier,
+        "orders": iterate_children,
+        "outpostconfig": _get_outpostconfig_identifier,
+        "outpostgenerationparameters": iterate_children,
+        "override": iterate_children,
+        "permissionpresets": ignore,  # Cain: Maybe I'm wrong
+        "prefabs": _get_prefabs_identifier,
+        "ragdoll": _get_ragdoll_indefier,
         "randomevents": iterate_children,
-        "eventprefabs": iterate_children,
-        "scriptedevent": get_scriptedevent_identifier,
-        "eventset": get_eventset_identifier,
-        "levelgenerationparameters": get_levelgenerationparameters_identifier,
+        "runconfig": ignore,
+        "scriptedevent": _get_scriptedevent_identifier,
+        "sounds": _get_sounds_identifier,
+        "spritedeformation": ignore,  # Cain: Maybe I'm wrong
+        "style": lambda *args, **kwargs: "Style",
+        "talent": _get_talent_identifier,
+        "talents": iterate_children,
+        "talenttree": _get_talenttree_identifier,
+        "talenttrees": iterate_children,
+        "upgradecategory": ignore,  # Cain: Maybe I'm wrong
+        "upgrademodule": _get_upgrademodule_identifier,
+        "upgrademodules": iterate_children,
+        "wreckaiconfig": lambda *args, **kwargs: "WreckAIConfig",
     }
 
     @staticmethod
@@ -209,7 +179,7 @@ class IDParser:
                 else:
                     id_parser_unit.add_id.add(anim_id)
 
-        for override_element in root_element.find("Override"):
+        for override_element in root_element.find("Override", True):
             if isinstance(override_element, XMLComment):
                 continue
 
