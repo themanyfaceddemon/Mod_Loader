@@ -37,23 +37,40 @@ def configure_logging(debug: bool):
     logging.basicConfig(level=log_level, handlers=[console_handler], encoding="utf-8")
 
 
-def init_classes(debug: bool) -> None:
+def init_app_config(debug: bool) -> None:
+    logging.debug("Initializing AppConfig...")
     AppConfig.init()
     AppConfig.set("debug", debug)
+    logging.debug("AppConfig initialization complete.")
 
 
-def main(debug: bool) -> None:
-    logging.debug("Starting initialization of classes...")
-    init_classes(debug)
-    logging.debug("Initialization complete. Loading translations...")
+def load_mods() -> None:
+    logging.debug("Loading mods...")
+    ModManager.load_mods_and_configs()
+    logging.debug("Mods loaded successfully.")
 
+
+def load_translations() -> None:
+    logging.debug("Loading translations...")
     localization_path = (
         Path(AppConfig.get_data_root()) / "localization" / AppConfig.get("lang", "eng")  # type: ignore
     )
     loc.load_translations(localization_path)
-    logging.debug("Translations loaded. Starting app...")
+    logging.debug("Translations loaded successfully.")
 
-    ModManager.load_mods_and_configs()
+
+def init_classes(debug: bool) -> None:
+    logging.debug("Starting application initialization...")
+    init_app_config(debug)
+    load_mods()
+    load_translations()
+    logging.debug("Application initialization complete.")
+
+
+def main(debug: bool) -> None:
+    logging.debug("Starting program...")
+    init_classes(debug)
+    logging.debug("Initialization complete. Program is ready to run.")
 
     return
     app_instance = App()

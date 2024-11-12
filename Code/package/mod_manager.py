@@ -1,10 +1,10 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from Code.app_vars import AppConfig
-from Code.xml_object import XMLComment, XMLObject
+from Code.xml_object import XMLObject
 
 from .dataclasses import ModUnit
 
@@ -46,15 +46,16 @@ class ModManager:
         obj = XMLObject.load_file(path_to_config_player)
         if not obj.root:
             logger.error(f"Invalid config_player.xml!\n|Path: {path_to_config_player}")
+            return
 
-        packages = obj.find("package")
+        obj = obj.root
+
+        packages = obj.find_only_elements("package")
 
         package_paths = [
             (i, package.attributes.get("path", None))
             for i, package in enumerate(packages, start=1)
-            if not isinstance(package, XMLComment)
-            and package.name == "package"
-            and package.attributes.get("path", None)
+            if package.name == "package" and package.attributes.get("path", None)
         ]
 
         def process_package(index, path):
@@ -84,6 +85,8 @@ class ModManager:
                     ModManager.active_mods.append(mod)
 
         ModManager.active_mods.sort(key=lambda m: m.load_order)  # type: ignore
+        for index, mod in enumerate(ModManager.active_mods, start=1):
+            mod.load_order = index
 
     @staticmethod
     def load_lua_config(path_to_game: Path):
@@ -95,7 +98,7 @@ class ModManager:
         if config_path.exists():
             xml_obj = XMLObject.load_file(config_path).root
             has_cs = (
-                xml_obj.attributes.get("EnableCsScripting", "false").lower() == "true"
+                xml_obj.attributes.get("enablecsscripting", "false").lower() == "true"
                 if xml_obj
                 else False
             )
@@ -116,3 +119,65 @@ class ModManager:
         else:
             AppConfig.set("has_lua", False)
             logger.debug("Barotrauma.deps.json not found, disabling Lua support.")
+
+    @staticmethod
+    def find_mod_by_id(mod_id: str) -> Optional[ModUnit]:
+        for mod in ModManager.active_mods + ModManager.inactive_mods:
+            if mod.id == mod_id:
+                return mod
+
+        return None
+
+    @staticmethod
+    def activate_mod(mod: ModUnit) -> None:
+        if mod in ModManager.inactive_mods:
+            ModManager.inactive_mods.remove(mod)
+            ModManager.active_mods.append(mod)
+
+    @staticmethod
+    def deactivate_mod(mod: ModUnit) -> None:
+        if mod in ModManager.active_mods:
+            ModManager.active_mods.remove(mod)
+            ModManager.inactive_mods.append(mod)
+
+    @staticmethod
+    def swap_active_mods(mod1: ModUnit, mod2: ModUnit) -> None:
+        try:
+            idx1, idx2 = (
+                ModManager.active_mods.index(mod1),
+                ModManager.active_mods.index(mod2),
+            )
+            ModManager.active_mods[idx1], ModManager.active_mods[idx2] = (
+                ModManager.active_mods[idx2],
+                ModManager.active_mods[idx1],
+            )
+
+        except ValueError:
+            pass
+
+    @staticmethod
+    def swap_inactive_mods(mod1: ModUnit, mod2: ModUnit) -> None:
+        try:
+            idx1, idx2 = (
+                ModManager.inactive_mods.index(mod1),
+                ModManager.inactive_mods.index(mod2),
+            )
+            ModManager.inactive_mods[idx1], ModManager.inactive_mods[idx2] = (
+                ModManager.inactive_mods[idx2],
+                ModManager.inactive_mods[idx1],
+            )
+
+        except ValueError:
+            pass
+
+    @staticmethod
+    def move_active_mod_to_end(mod: ModUnit) -> None:
+        if mod in ModManager.active_mods:
+            ModManager.active_mods.remove(mod)
+            ModManager.active_mods.append(mod)
+
+    @staticmethod
+    def move_inactive_mod_to_end(mod: ModUnit) -> None:
+        if mod in ModManager.inactive_mods:
+            ModManager.inactive_mods.remove(mod)
+            ModManager.inactive_mods.append(mod)

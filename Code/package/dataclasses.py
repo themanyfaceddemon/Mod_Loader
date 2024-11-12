@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLObject
@@ -62,6 +62,17 @@ class Dependencie(Identifier):
             f"dep_type={self.dep_type}, add_attribute={self.add_attribute})"
         )
 
+    @staticmethod
+    def is_valid_type(value: str):
+        return value in {
+            "patch",
+            "optionalPatch",
+            "requirement",
+            "optionalRequirement",
+            "requiredAnyOrder",
+            "conflict",
+        }
+
 
 @dataclass
 class Metadata:
@@ -118,6 +129,8 @@ class ModUnit(Identifier):
     use_lua: bool
     use_cs: bool
 
+    settings: Dict[str, Any]
+
     add_id: set[str]
     override_id: set[str]
 
@@ -131,6 +144,7 @@ class ModUnit(Identifier):
             Metadata.create_empty(),
             False,
             False,
+            {},
             set(),
             set(),
         )
@@ -160,6 +174,7 @@ class ModUnit(Identifier):
         )
 
         ModUnit.parse_files(obj, path)
+        ModUnit.parse_metadata(obj, path)
 
         return obj
 
@@ -217,3 +232,78 @@ class ModUnit(Identifier):
 
             except Exception as err:
                 logger.error(str(err) + f"\n|Mod: {obj!r}")
+
+    @staticmethod
+    def parse_metadata(obj: "ModUnit", path: Path) -> None:
+        metadata_path = path / "metadata.xml"
+
+        if not metadata_path.exists():
+            search_pattern = f"{obj.id}.xml"
+            found_files = list(AppConfig.get_data_root().rglob(search_pattern))
+
+            if found_files:
+                metadata_path = found_files[0]
+            else:
+                return
+
+        xml_obj = XMLObject.load_file(metadata_path)
+        if not xml_obj.root:
+            raise ValueError(f"Empty metadata.xml for {obj.id}!")
+        xml_obj = xml_obj.root
+
+        for element in xml_obj.iter_non_comment_childrens():
+            element_name_lower = element.name.lower()
+
+            if element_name_lower == "settings":
+                for ch in element.iter_non_comment_childrens():
+                    setting_name = ch.attributes.get("name")
+                    if setting_name:
+                        obj.settings[setting_name] = ch.attributes.get("value")
+
+            if element_name_lower == "meta":
+                for ch in element.iter_non_comment_childrens():
+                    ch_name_lower = ch.name.lower()
+                    if ch_name_lower == "author":
+                        obj.metadata.author_name = ch.content
+                    elif ch_name_lower == "license":
+                        obj.metadata.license = ch.content
+                    elif ch_name_lower == "warning":
+                        obj.metadata.warnings.extend(ch.content.strip().splitlines())
+                    elif ch_name_lower == "error":
+                        obj.metadata.errors.extend(ch.content.strip().splitlines())
+
+            if element_name_lower == "dependencies":
+                dependencies = []
+                for ch in element.iter_non_comment_childrens():
+                    dep_type = ch.name
+
+                    if not Dependencie.is_valid_type(dep_type):
+                        raise ValueError(
+                            f"Invalid dependency type: '{dep_type}' in element {ch}"
+                        )
+
+                    name = ch.attributes.get("name")
+                    steam_id = ch.attributes.get("steamID")
+
+                    if not name:
+                        raise ValueError(
+                            f"Dependency element missing 'name' attribute in element {ch}"
+                        )
+
+                    if not steam_id:
+                        raise ValueError(
+                            f"Dependency element missing 'steamID' attribute in element {ch}"
+                        )
+
+                    add_attributes = ch.attributes.copy()
+                    add_attributes.pop("steamID", None)
+
+                    dependency = Dependencie(
+                        name=name,
+                        steam_id=steam_id,
+                        dep_type=dep_type,  # type: ignore
+                        add_attribute=add_attributes,
+                    )
+                    dependencies.append(dependency)
+
+                obj.metadata.dependencies = dependencies

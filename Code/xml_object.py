@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Union
+from typing import Dict, Generator, List, Optional, Union
 
 
 class XMLParserException(Exception):
@@ -56,17 +56,25 @@ class XMLElement:
         self.childrens: List[Union["XMLElement", XMLComment]] = []
         self.content: str = ""
 
+    def get_attribute_ignore_case(self, key: str, default=None):
+        key_lower = key.lower()
+        for attr_key, attr_value in self.attributes.items():
+            if attr_key.lower() == key_lower:
+                return attr_value
+
+        return default
+
     def add_child(self, child: Union["XMLElement", XMLComment]):
         self.childrens.append(child)
 
-    def iter_comment_childrens(self) -> Iterator[XMLComment]:
+    def iter_comment_childrens(self) -> Generator[XMLComment, None, None]:
         for elem in self.childrens:
             if isinstance(elem, XMLElement):
                 continue
 
             yield elem
 
-    def iter_non_comment_childrens(self) -> Iterator["XMLElement"]:
+    def iter_non_comment_childrens(self) -> Generator["XMLElement", None, None]:
         for elem in self.childrens:
             if isinstance(elem, XMLComment):
                 continue
@@ -236,38 +244,64 @@ class XMLElement:
 
         return root
 
+    @staticmethod
+    def _match_name_and_attributes(
+        element: "XMLElement", pattern: str, exact_match: bool
+    ) -> bool:
+        if exact_match:
+            return element.name == pattern or pattern in element.attributes.values()
+        compiled_pattern = re.compile(pattern)
+        return compiled_pattern.search(element.name) is not None or any(
+            compiled_pattern.search(value) for value in element.attributes.values()
+        )
+
+    @staticmethod
+    def _match_comment(text: str, pattern: str, exact_match: bool) -> bool:
+        if exact_match:
+            return text == pattern
+        return re.search(pattern, text) is not None
+
     def find(
         self, pattern: str, exact_match: bool = False
-    ) -> List[Union["XMLElement", XMLComment]]:
-        result = []
-
-        def match_element(element: XMLElement):
-            if exact_match:
-                name_matches = element.name == pattern
-                attr_matches = pattern in element.attributes.values()
-                comment_matches = lambda text: text == pattern  # noqa: E731
-            else:
-                compiled_pattern = re.compile(pattern)
-                name_matches = compiled_pattern.search(element.name) is not None
-                attr_matches = any(
-                    compiled_pattern.search(value)
-                    for value in element.attributes.values()
-                )
-                comment_matches = lambda text: compiled_pattern.search(text) is not None  # noqa: E731
-
-            if name_matches or attr_matches:
-                result.append(element)
-
+    ) -> Generator[Union["XMLElement", "XMLComment"], None, None]:
+        def match_element(element: "XMLElement"):
+            if XMLElement._match_name_and_attributes(element, pattern, exact_match):
+                yield element
             for child in element.childrens:
                 if isinstance(child, XMLElement):
-                    match_element(child)
+                    yield from match_element(child)
+                elif isinstance(child, XMLComment) and XMLElement._match_comment(
+                    child.text, pattern, exact_match
+                ):
+                    yield child
 
-                elif isinstance(child, XMLComment):
-                    if comment_matches(child.text):
-                        result.append(child)
+        yield from match_element(self)
 
-        match_element(self)
-        return result
+    def find_only_comments(
+        self, pattern: str, exact_match: bool = False
+    ) -> Generator["XMLComment", None, None]:
+        def match_element(element: "XMLElement"):
+            for child in element.childrens:
+                if isinstance(child, XMLElement):
+                    yield from match_element(child)
+                elif isinstance(child, XMLComment) and XMLElement._match_comment(
+                    child.text, pattern, exact_match
+                ):
+                    yield child
+
+        yield from match_element(self)
+
+    def find_only_elements(
+        self, pattern: str, exact_match: bool = False
+    ) -> Generator["XMLElement", None, None]:
+        def match_element(element: "XMLElement"):
+            if XMLElement._match_name_and_attributes(element, pattern, exact_match):
+                yield element
+            for child in element.childrens:
+                if isinstance(child, XMLElement):
+                    yield from match_element(child)
+
+        yield from match_element(self)
 
     def __repr__(self):
         return (
@@ -279,11 +313,6 @@ class XMLElement:
 class XMLObject:
     def __init__(self) -> None:
         self.root: Optional[XMLElement] = None
-
-    def find(self, pattern: str) -> List[Union[XMLElement, XMLComment]]:
-        if self.root:
-            return self.root.find(pattern)
-        return []
 
     def replace_element_with_comment(self, element_name: str) -> None:
         if self.root:

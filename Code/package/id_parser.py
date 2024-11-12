@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import List, Optional, Set
 
-from Code.xml_object import XMLComment, XMLElement
+from Code.xml_object import XMLElement
 
 logger = logging.getLogger("XMLIDParser")
 
@@ -19,7 +19,7 @@ class IDParserUnit:
 
 def _get_identifiers_for_list(prefix: str, identifier_key: str = "identifier"):
     return lambda element, *args, **kwargs: [
-        f"{prefix}.{child.attributes.get(identifier_key, child.name)}"
+        f"{prefix}.{child.get_attribute_ignore_case(identifier_key, child.name)}"
         for elem in element.iter_non_comment_childrens()
         for child in (
             elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
@@ -44,7 +44,7 @@ def _get_identifier(prefix: str, identifier: str = "identifier"):
     return (
         lambda element,
         *args,
-        **kwargs: f"{prefix}.{element.attributes.get(identifier, element.name)}"
+        **kwargs: f"{prefix}.{element.get_attribute_ignore_case(identifier, element.name)}"
     )
 
 
@@ -80,11 +80,15 @@ def ignore(element: XMLElement, *args, **kwargs):
 
 
 def is_animation(element: XMLElement) -> Optional[str]:
-    if element.attributes.get("animationtype", None):
-        return f"GroungAnimation.{element.name}"
+    anim_type = element.get_attribute_ignore_case("animationtype")
+    if not anim_type:
+        return None
 
-    elif element.attributes.get("AnimationType", None):
+    if anim_type in ["SwimSlow", "SwimFast"]:
         return f"WaterAnimation.{element.name}"
+
+    if anim_type in ["Walk", "Run", "Crouch"]:
+        return f"GroungAnimation.{element.name}"
 
     return None
 
@@ -179,10 +183,7 @@ class IDParser:
                 else:
                     id_parser_unit.add_id.add(anim_id)
 
-        for override_element in root_element.find("Override", True):
-            if isinstance(override_element, XMLComment):
-                continue
-
+        for override_element in root_element.find_only_elements("Override", True):
             elements_to_process = (
                 list(override_element.iter_non_comment_childrens())
                 if override_element is root_element
