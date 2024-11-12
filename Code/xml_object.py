@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, Iterator, List, Optional, Union
 
 
 class XMLParserException(Exception):
@@ -53,11 +53,25 @@ class XMLElement:
     def __init__(self, name: str, attributes: Optional[Dict[str, str]] = None):
         self.name = name
         self.attributes: Dict[str, str] = attributes if attributes is not None else {}
-        self.children: List[Union["XMLElement", XMLComment]] = []
+        self.childrens: List[Union["XMLElement", XMLComment]] = []
         self.content: str = ""
 
     def add_child(self, child: Union["XMLElement", XMLComment]):
-        self.children.append(child)
+        self.childrens.append(child)
+
+    def iter_comment_childrens(self) -> Iterator[XMLComment]:
+        for elem in self.childrens:
+            if isinstance(elem, XMLElement):
+                continue
+
+            yield elem
+
+    def iter_non_comment_childrens(self) -> Iterator["XMLElement"]:
+        for elem in self.childrens:
+            if isinstance(elem, XMLComment):
+                continue
+
+            yield elem
 
     def dump(
         self,
@@ -70,10 +84,10 @@ class XMLElement:
         attrs = " ".join(f'{key}="{value}"' for key, value in self.attributes.items())
         opening_tag = f"<{self.name}{(' ' + attrs) if attrs else ''}>"
 
-        if not self.children and not self.content:
+        if not self.childrens and not self.content:
             return f"{indent_str}<{self.name}{(' ' + attrs) if attrs else ''} />"
 
-        if not self.children and inline_content and self.content:
+        if not self.childrens and inline_content and self.content:
             return f"{indent_str}{opening_tag}{self.content}</{self.name}>"
 
         result = f"{indent_str}{opening_tag}"
@@ -86,7 +100,7 @@ class XMLElement:
                 content_str = indent_char * (indent + 4) + content_str + "\n"
             result += content_str
 
-        for child in self.children:
+        for child in self.childrens:
             child_str = child.dump(indent + 4, indent_char, single_line, inline_content)
             if not single_line:
                 child_str += "\n"
@@ -233,7 +247,7 @@ class XMLElement:
                 compiled_pattern.search(value) for value in element.attributes.values()
             ):
                 result.append(element)
-            for child in element.children:
+            for child in element.childrens:
                 if isinstance(child, XMLElement):
                     match_element(child)
                 elif isinstance(child, XMLComment):
@@ -246,7 +260,7 @@ class XMLElement:
     def __repr__(self):
         return (
             f"XMLElement(name={repr(self.name)}, attributes={self.attributes}, "
-            f"children={self.children}, content={repr(self.content)})"
+            f"children={self.childrens}, content={repr(self.content)})"
         )
 
 
@@ -266,10 +280,10 @@ class XMLObject:
     def _replace_element_with_comment(
         self, element: XMLElement, element_name: str
     ) -> None:
-        for i, child in enumerate(element.children):
+        for i, child in enumerate(element.childrens):
             if isinstance(child, XMLElement):
                 if child.name == element_name:
-                    element.children[i] = child.to_comment()
+                    element.childrens[i] = child.to_comment()
                 else:
                     self._replace_element_with_comment(child, element_name)
 
@@ -280,10 +294,10 @@ class XMLObject:
     def _replace_comment_with_element(
         self, element: XMLElement, comment_text: str
     ) -> None:
-        for i, child in enumerate(element.children):
+        for i, child in enumerate(element.childrens):
             if isinstance(child, XMLComment):
                 if comment_text in child.text:
-                    element.children[i] = child.to_element()
+                    element.childrens[i] = child.to_element()
             elif isinstance(child, XMLElement):
                 self._replace_comment_with_element(child, comment_text)
 

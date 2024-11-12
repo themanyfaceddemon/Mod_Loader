@@ -1,11 +1,12 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List
 
 from Code.app_vars import AppConfig
-from Code.xml_object import XMLComment, XMLElement, XMLObject, XMLParserException
+from Code.xml_object import XMLComment, XMLObject
 
-from .dataclasses import Dependencie, Identifier, Metadata, ModUnit
+from .dataclasses import ModUnit
 
 logger = logging.getLogger("Loader")
 
@@ -28,14 +29,14 @@ class Loader:
             logger.error(f"Game path dont exists!\n|Path: {game_path}")
             return
 
-        Loader.load_user_config(game_path / "config_player.xml")
+        Loader.load_user_mods(game_path / "config_player.xml")
         Loader.load_lua_config(game_path)
 
     @staticmethod
-    def load_user_config(path_to_config_player: Path):
+    def load_user_mods(path_to_config_player: Path):
         if not path_to_config_player.exists():
             logger.error(
-                f"config_player.xml path dont exists!\n|Path: {path_to_config_player}"
+                f"config_player.xml path doesn't exist!\n|Path: {path_to_config_player}"
             )
             return
 
@@ -45,29 +46,36 @@ class Loader:
 
         packages = obj.find("package")
 
-        i = 1
-        for package in packages:
+        package_paths = [
+            (i, package.attributes.get("path", None))
+            for i, package in enumerate(packages, start=1)
+            if not isinstance(package, XMLComment) and package.name == "package" and package.attributes.get("path", None)
+        ]
+
+        def process_package(index, path):
             try:
-                if isinstance(package, XMLComment):
-                    continue
-
-                elif package.name == "package":
-                    path = package.attributes.get("path", None)
-                    if path is None:
-                        continue
-
-                    path = Path(path).parent
-                    mod = ModUnit.build_by_path(path)
-                    if mod is None:
-                        logger.error(f"Can not build mod whith path:{path}")
-                        continue
-
-                    mod.load_order = i
-                    Loader.active_mod.append(mod)
-                    i += 1
+                path = Path(path).parent
+                mod = ModUnit.build_by_path(path)
+                if mod is None:
+                    logger.error(f"Cannot build mod with path: {path}")
+                    return None
+                
+                mod.load_order = index
+                return mod
 
             except Exception as err:
                 logger.error(err)
+                return None
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_package, index, path) for index, path in package_paths]
+
+            for future in as_completed(futures):
+                mod = future.result()
+                if mod is not None:
+                    Loader.active_mod.append(mod)
+
+        Loader.active_mod.sort(key=lambda m: m.load_order) # type: ignore
 
     @staticmethod
     def load_lua_config(path_to_game: Path):

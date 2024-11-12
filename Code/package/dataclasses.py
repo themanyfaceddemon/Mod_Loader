@@ -1,11 +1,11 @@
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from pathlib import Path
-import re
 from typing import Dict, List, Literal, Optional
 
 from Code.app_vars import AppConfig
-from Code.xml_object import XMLComment, XMLElement, XMLObject
+from Code.xml_object import XMLObject
+
 from .id_parser import IDParser
 
 logger = logging.getLogger("ModBuild")
@@ -199,6 +199,7 @@ class ModUnit(Identifier):
                 "filelist.xml",
                 "metadata.xml",
                 "file_list.xml",
+                "files_list.xml",
             ]:
                 continue
 
@@ -210,9 +211,9 @@ class ModUnit(Identifier):
 
                 xml_obj = xml_obj.root
 
-                add_id, override_id = IDParser.get_ids(xml_obj)
-                obj.add_id.update(add_id)
-                obj.override_id.update(override_id)
+                id_parser_unit = IDParser.get_ids(xml_obj)
+                obj.add_id.update(id_parser_unit.add_id)
+                obj.override_id.update(id_parser_unit.override_id)
 
             except Exception as err:
                 logger.error(str(err) + f"\n|Mod: {obj!r}")
