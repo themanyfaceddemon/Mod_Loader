@@ -7,7 +7,7 @@ from colorama import Fore, Style, init
 from Code.app import App
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package.loader import Loader
+from Code.package import ModManager
 
 
 class ColoredFormatter(logging.Formatter):
@@ -53,7 +53,7 @@ def main(debug: bool) -> None:
     loc.load_translations(localization_path)
     logging.debug("Translations loaded. Starting app...")
 
-    Loader.init_data_load()
+    ModManager.load_mods_and_configs()
 
     return
     app_instance = App()

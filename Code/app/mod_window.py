@@ -2,7 +2,7 @@ import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package.dataclasses import ModUnit
+from Code.package import ModManager, ModUnit
 
 
 class ModWindow:
@@ -117,15 +117,15 @@ class ModWindow:
 
     @staticmethod
     def render_mods():
-        ModLoader.process_errors()
+        ModManager.process_errors()
         dpg.delete_item("active_mods_child", children_only=True)
-        for mod in ModLoader.active_mods:
-            if ModWindow.active_mod_search_text in mod.identifier.name.lower():
+        for mod in ModManager.active_mods:
+            if ModWindow.active_mod_search_text in mod.name.lower():
                 ModWindow.add_movable_mod(mod, "active", "active_mods_child")
 
         dpg.delete_item("inactive_mods_child", children_only=True)
-        for mod in ModLoader.inactive_mods:
-            if ModWindow.inactive_mod_search_text in mod.identifier.name.lower():
+        for mod in ModManager.inactive_mods:
+            if ModWindow.inactive_mod_search_text in mod.name.lower():
                 ModWindow.add_movable_mod(mod, "inactive", "inactive_mods_child")
 
         error_count, warning_count = ModWindow.count_mods_with_issues()
@@ -138,31 +138,27 @@ class ModWindow:
 
     @staticmethod
     def add_movable_mod(mod: ModUnit, status: str, parent):
-        mod_group_tag = f"{mod.identifier.id}_{status}_group"
-        mod_name_tag = f"{mod.identifier.id}_{status}_text"
+        mod_group_tag = f"{mod.id}_{status}_group"
+        mod_name_tag = f"{mod.id}_{status}_text"
 
         with dpg.group(tag=mod_group_tag, parent=parent):
             dpg.add_text(
-                mod.identifier.name,
+                mod.name,
                 tag=mod_name_tag,
                 drop_callback=ModWindow.on_mod_dropped,
                 payload_type="MOD_DRAG",
-                user_data={"mod_id": mod.identifier.id, "status": status},
+                user_data={"mod_id": mod.id, "status": status},
             )
 
             with dpg.popup(parent=mod_name_tag):
                 with dpg.group(horizontal=True):
                     dpg.add_text(loc.get_string("label-author"), color=[0, 102, 204])
-                    dpg.add_text(
-                        mod.metadata.meta.get("author", loc.get_string("base-unknown"))
-                    )
+                    dpg.add_text(mod.metadata.author_name)
 
                 with dpg.group(horizontal=True):
                     dpg.add_text(loc.get_string("label-license"), color=[169, 169, 169])
                     dpg.add_text(
-                        mod.metadata.meta.get(
-                            "license", loc.get_string("not-specified")
-                        ),
+                        mod.metadata.license,
                         color=[169, 169, 169],
                     )
 
@@ -210,9 +206,9 @@ class ModWindow:
             with dpg.drag_payload(
                 parent=mod_name_tag,
                 payload_type="MOD_DRAG",
-                drag_data={"mod_id": mod.identifier.id, "status": status},
+                drag_data={"mod_id": mod.id, "status": status},
             ):
-                dpg.add_text(mod.identifier.name)
+                dpg.add_text(mod.name)
 
             if mod.metadata.errors:
                 dpg.configure_item(mod_name_tag, color=[255, 0, 0])
@@ -225,8 +221,8 @@ class ModWindow:
 
     @staticmethod
     def show_details_window(mod: ModUnit):
-        title = loc.get_string("label-mod-details-title", mod_name=mod.identifier.name)
-        window_tag = f"{mod.identifier.id}_full_details_window"
+        title = loc.get_string("label-mod-details-title", mod_name=mod.name)
+        window_tag = f"{mod.id}_full_details_window"
 
         if dpg.does_item_exist(window_tag):
             dpg.delete_item(window_tag)
@@ -244,26 +240,20 @@ class ModWindow:
                         dpg.add_text(
                             loc.get_string("label-mod-name"), color=[0, 102, 204]
                         )
-                        dpg.add_text(mod.identifier.name)
+                        dpg.add_text(mod.name)
 
                     with dpg.group(horizontal=True):
                         dpg.add_text(
                             loc.get_string("label-author"), color=[0, 102, 204]
                         )
-                        dpg.add_text(
-                            mod.metadata.meta.get(
-                                "author", loc.get_string("base-unknown")
-                            )
-                        )
+                        dpg.add_text(mod.metadata.author_name)
 
                     with dpg.group(horizontal=True):
                         dpg.add_text(
                             loc.get_string("label-license"), color=[169, 169, 169]
                         )
                         dpg.add_text(
-                            mod.metadata.meta.get(
-                                "license", loc.get_string("not-specified")
-                            ),
+                            mod.metadata.license,
                             color=[169, 169, 169],
                         )
 
@@ -271,7 +261,7 @@ class ModWindow:
                         dpg.add_text(loc.get_string("label-is-local-mod"))
                         dpg.add_text(
                             loc.get_string("base-yes")
-                            if mod.metadata.local
+                            if mod.local
                             else loc.get_string("base-no")
                         )
 
@@ -280,7 +270,7 @@ class ModWindow:
                         dpg.add_text(
                             loc.get_string("label-modloader-id"), color=[34, 139, 34]
                         )
-                        dpg.add_text(mod.identifier.id)
+                        dpg.add_text(mod.id)
 
                     with dpg.group(horizontal=True):
                         dpg.add_text(
@@ -322,35 +312,35 @@ class ModWindow:
 
             if dragged_mod_status != target_mod_status:
                 if target_mod_status == "active":
-                    ModLoader.activate_mod(dragged_mod_id)
+                    ModManager.activate_mod(dragged_mod_id)
                 else:
-                    ModLoader.deactivate_mod(dragged_mod_id)
+                    ModManager.deactivate_mod(dragged_mod_id)
                 dragged_mod_status = target_mod_status
 
             if dragged_mod_status == "active":
-                ModLoader.swap_active_mods(dragged_mod_id, target_mod_id)
+                ModManager.swap_active_mods(dragged_mod_id, target_mod_id)
             else:
-                ModLoader.swap_inactive_mods(dragged_mod_id, target_mod_id)
+                ModManager.swap_inactive_mods(dragged_mod_id, target_mod_id)
 
         elif sender_type == "mvAppItemType::mvChildWindow":
             target_status = dpg.get_item_user_data(sender)
             if dragged_mod_status != target_status:
                 if target_status == "active":
-                    ModLoader.activate_mod(dragged_mod_id)
+                    ModManager.activate_mod(dragged_mod_id)
                 else:
-                    ModLoader.deactivate_mod(dragged_mod_id)
+                    ModManager.deactivate_mod(dragged_mod_id)
                 dragged_mod_status = target_status
 
             if dragged_mod_status == "active":
-                ModLoader.move_active_mod_to_end(dragged_mod_id)
+                ModManager.move_active_mod_to_end(dragged_mod_id)
             else:
-                ModLoader.move_inactive_mod_to_end(dragged_mod_id)
+                ModManager.move_inactive_mod_to_end(dragged_mod_id)
 
         ModWindow.render_mods()
 
     @staticmethod
     def sort_active_mods():
-        ModLoader.sort()
+        ModManager.sort()
         ModWindow.render_mods()
 
     @staticmethod
@@ -358,7 +348,7 @@ class ModWindow:
         error_count = 0
         warning_count = 0
 
-        for mod in ModLoader.active_mods:
+        for mod in ModManager.active_mods:
             if mod.metadata.errors:
                 error_count += 1
 

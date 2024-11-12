@@ -8,15 +8,18 @@ from Code.xml_object import XMLComment, XMLObject
 
 from .dataclasses import ModUnit
 
-logger = logging.getLogger("Loader")
+logger = logging.getLogger("ModManager")
 
 
-class Loader:
-    active_mod: List[ModUnit] = []
-    inactive_mod: List[ModUnit] = []
+class ModManager:
+    active_mods: List[ModUnit] = []
+    inactive_mods: List[ModUnit] = []
 
     @staticmethod
-    def init_data_load():
+    def load_mods_and_configs():
+        ModManager.active_mods.clear()
+        ModManager.inactive_mods.clear()
+
         game_path = AppConfig.get("barotrauma_dir", None)
 
         if game_path is None:
@@ -29,8 +32,8 @@ class Loader:
             logger.error(f"Game path dont exists!\n|Path: {game_path}")
             return
 
-        Loader.load_user_mods(game_path / "config_player.xml")
-        Loader.load_lua_config(game_path)
+        ModManager.load_user_mods(game_path / "config_player.xml")
+        ModManager.load_lua_config(game_path)
 
     @staticmethod
     def load_user_mods(path_to_config_player: Path):
@@ -49,7 +52,9 @@ class Loader:
         package_paths = [
             (i, package.attributes.get("path", None))
             for i, package in enumerate(packages, start=1)
-            if not isinstance(package, XMLComment) and package.name == "package" and package.attributes.get("path", None)
+            if not isinstance(package, XMLComment)
+            and package.name == "package"
+            and package.attributes.get("path", None)
         ]
 
         def process_package(index, path):
@@ -59,7 +64,7 @@ class Loader:
                 if mod is None:
                     logger.error(f"Cannot build mod with path: {path}")
                     return None
-                
+
                 mod.load_order = index
                 return mod
 
@@ -68,14 +73,17 @@ class Loader:
                 return None
 
         with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(process_package, index, path) for index, path in package_paths]
+            futures = [
+                executor.submit(process_package, index, path)
+                for index, path in package_paths
+            ]
 
             for future in as_completed(futures):
                 mod = future.result()
                 if mod is not None:
-                    Loader.active_mod.append(mod)
+                    ModManager.active_mods.append(mod)
 
-        Loader.active_mod.sort(key=lambda m: m.load_order) # type: ignore
+        ModManager.active_mods.sort(key=lambda m: m.load_order)  # type: ignore
 
     @staticmethod
     def load_lua_config(path_to_game: Path):
