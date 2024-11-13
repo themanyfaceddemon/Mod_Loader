@@ -4,8 +4,4 @@
         <author>Mannatu</author>
         <id>Mannatu.BetterHealthUI</id>
     </meta>
-
-    <dependencies>
-        <requiredAnyOrder name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
-    </dependencies>
 </metadata>
