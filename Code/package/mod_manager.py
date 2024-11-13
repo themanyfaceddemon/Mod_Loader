@@ -32,11 +32,12 @@ class ModManager:
             logger.error(f"Game path dont exists!\n|Path: {game_path}")
             return
 
-        ModManager.load_user_mods(game_path / "config_player.xml")
+        ModManager.load_active_mods(game_path / "config_player.xml")
+        ModManager.load_inactive_mods(AppConfig.get("barotrauma_install_mod_dir"))
         ModManager.load_lua_config(game_path)
 
     @staticmethod
-    def load_user_mods(path_to_config_player: Path):
+    def load_active_mods(path_to_config_player: Path):
         if not path_to_config_player.exists():
             logger.error(
                 f"config_player.xml path doesn't exist!\n|Path: {path_to_config_player}"
@@ -87,6 +88,35 @@ class ModManager:
         ModManager.active_mods.sort(key=lambda m: m.load_order)  # type: ignore
         for index, mod in enumerate(ModManager.active_mods, start=1):
             mod.load_order = index
+
+    @staticmethod
+    def load_inactive_mods(path_to_all_mods: Optional[str]):
+        if path_to_all_mods is None:
+            logger.error("Barotrauma mod dir not set!")
+            return
+
+        package_paths = [
+            path for path in Path(path_to_all_mods).iterdir() if path.is_dir()
+        ]
+
+        def process_package(path):
+            try:
+                mod = ModUnit.build_by_path(path)
+                if mod is None:
+                    logger.error(f"Cannot build mod with path: {path}")
+                    return None
+                return mod
+
+            except Exception as err:
+                logger.error(err)
+                return None
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_package, path) for path in package_paths]
+            for future in as_completed(futures):
+                mod = future.result()
+                if mod is not None:
+                    ModManager.inactive_mods.append(mod)
 
     @staticmethod
     def load_lua_config(path_to_game: Path):
