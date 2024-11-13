@@ -1,11 +1,11 @@
 from collections import defaultdict, deque
 
 mods = [
-    {"id": 5, "name": "IndependentMod", "requirements": [], "patches": []},
-    {"id": 1, "name": "MainMod", "requirements": [2, 3], "patches": [4]},
-    {"id": 3, "name": "RequirementMod2", "requirements": [], "patches": []},
-    {"id": 4, "name": "PatchMod1", "requirements": [], "patches": []},
-    {"id": 2, "name": "RequirementMod1", "requirements": [], "patches": []},
+    {"id": 1, "name": "MainMod", "requirements": [2, 3], "patches": [4], "add_id": {"A"}, "override_id": {"C"}},
+    {"id": 2, "name": "RequirementMod1", "requirements": [], "patches": [], "add_id": {"B"}, "override_id": set()},
+    {"id": 3, "name": "RequirementMod2", "requirements": [], "patches": [], "add_id": set(), "override_id": {"A"}},
+    {"id": 4, "name": "PatchMod1", "requirements": [1], "patches": [], "add_id": set(), "override_id": {"D"}},
+    {"id": 5, "name": "ZZZIndependentMod", "requirements": [], "patches": [], "add_id": {"E"}, "override_id": set()},
 ]
 
 id_to_name = {mod["id"]: mod["name"] for mod in mods}
@@ -23,10 +23,18 @@ for mod in mods:
         dependency_graph[mod["id"]].append(requirement_id)
         in_degree[requirement_id] += 1
 
+add_to_override_dependencies = defaultdict(set)
+for mod in mods:
+    for add_id in mod["add_id"]:
+        for other_mod in mods:
+            if add_id in other_mod["override_id"]:
+                dependency_graph[mod["id"]].append(other_mod["id"])
+                in_degree[other_mod["id"]] += 1
+
 queue = deque(
     sorted(
         [mod["id"] for mod in mods if in_degree[mod["id"]] == 0],
-        key=lambda id_: id_to_name[id_],
+        key=lambda id_: id_to_name[id_]
     )
 )
 sorted_mods = []
@@ -34,9 +42,7 @@ sorted_mods = []
 while queue:
     current_id = queue.popleft()
     sorted_mods.append(current_id)
-    for neighbor_id in sorted(
-        dependency_graph[current_id], key=lambda id_: id_to_name[id_]
-    ):
+    for neighbor_id in sorted(dependency_graph[current_id], key=lambda id_: id_to_name[id_]):
         in_degree[neighbor_id] -= 1
         if in_degree[neighbor_id] == 0:
             queue.append(neighbor_id)
