@@ -48,7 +48,7 @@ def load_mods() -> None:
     logging.debug("Loading mods...")
     ModManager.load_mods_and_configs()
 
-    ModManager.sort()
+    # ModManager.sort()
     logging.debug("Mods loaded successfully.")
 
 

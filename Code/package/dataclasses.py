@@ -239,7 +239,9 @@ class ModUnit(Identifier):
 
         if not metadata_path.exists():
             search_pattern = f"{obj.id}.xml"
-            found_files = list(AppConfig.get_data_root().rglob(search_pattern))
+            found_files = list(
+                (AppConfig.get_data_root() / "InternalLibrary").rglob(search_pattern)
+            )
 
             if found_files:
                 metadata_path = found_files[0]

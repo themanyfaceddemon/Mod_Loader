@@ -129,6 +129,7 @@ class IDParser:
         "mapgenerationparameters": lambda *args, **kwargs: "MapGenerationParameters",
         "member": ignore,  # Cain: from doc
         "missions": _get_missions_identifier,
+        "names": ignore,  # Cain: idn how to identifier this
         "npcset": _get_npcset_indefier,
         "npcsets": iterate_children,
         "options": ignore,

@@ -10,16 +10,19 @@ class XMLParserException(Exception):
         tag: Optional[str] = None,
         position: Optional[int] = None,
         line: Optional[int] = None,
+        content: Optional[str] = None,
     ):
         super().__init__(message)
         self.tag = tag
         self.position = position
         self.line = line
+        self.content = content
 
     def __str__(self):
         return (
             f"{self.args[0]} "
-            f"(Tag: {self.tag}, Position: {self.position}, Line: {self.line})"
+            f"(Tag: {self.tag}, Position: {self.position}, Line: {self.line})\n"
+            f"{self.content}"
         )
 
 
@@ -41,7 +44,8 @@ class XMLComment:
         xml_obj = XMLElement.build_element(self.text)
         if not xml_obj:
             raise XMLParserException(
-                "Unable to convert comment to element: Empty content."
+                "Unable to convert comment to element: Empty content.",
+                content=self.text,
             )
         return xml_obj
 
@@ -137,7 +141,9 @@ class XMLElement:
         if content.startswith("<?xml"):
             i = content.find(">")
             if i == -1:
-                raise XMLParserException("Invalid <?xml>", line=line, position=0)
+                raise XMLParserException(
+                    "Invalid <?xml>", line=line, position=0, content=content
+                )
 
         while i < len(content):
             if content[i] == "\n":
@@ -148,7 +154,9 @@ class XMLElement:
             if content[i : i + 4] == "<!--":
                 end_comment = content.find("-->", i + 4)
                 if end_comment == -1:
-                    raise XMLParserException("Unclosed comment", position=i, line=line)
+                    raise XMLParserException(
+                        "Unclosed comment", position=i, line=line, content=content
+                    )
                 comment_text = content[i + 4 : end_comment].strip()
                 comment = XMLComment(comment_text)
                 if stack:
@@ -174,7 +182,10 @@ class XMLElement:
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
                         raise XMLParserException(
-                            "Malformed closing tag", position=i, line=line
+                            "Malformed closing tag",
+                            position=i,
+                            line=line,
+                            content=content,
                         )
 
                     tag_name = content[tag_start:tag_end].strip()
@@ -184,6 +195,7 @@ class XMLElement:
                             tag=tag_name,
                             position=i,
                             line=line,
+                            content=content,
                         )
                     closed_element = stack.pop()
                     if not stack:
@@ -196,7 +208,9 @@ class XMLElement:
                     tag_start = i + 1
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
-                        raise XMLParserException("Malformed tag", position=i, line=line)
+                        raise XMLParserException(
+                            "Malformed tag", position=i, line=line, content=content
+                        )
 
                     is_self_closing = content[tag_end - 1] == "/"
                     tag_content = content[tag_start:tag_end].strip()
@@ -239,7 +253,11 @@ class XMLElement:
 
         if stack:
             raise XMLParserException(
-                "Unclosed tags remain", tag=stack[-1].name, position=i, line=line
+                "Unclosed tags remain",
+                tag=stack[-1].name,
+                position=i,
+                line=line,
+                content=content,
             )
 
         return root
