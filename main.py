@@ -47,8 +47,13 @@ def init_app_config(debug: bool) -> None:
 def load_mods() -> None:
     logging.debug("Loading mods...")
     ModManager.load_mods_and_configs()
+    for mod in ModManager.active_mods:
+        print(mod.name, mod.load_order)
 
-    # ModManager.sort()
+    ModManager.sort()
+    for mod in ModManager.active_mods:
+        print(mod.name, mod.load_order)
+
     logging.debug("Mods loaded successfully.")
 
 
