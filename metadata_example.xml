@@ -22,10 +22,8 @@
 
     <dependencies>
         <patch name="Some mod name in filelist.xml" steamID="123" condition="None"/>
-        <optionalPatch name="Some mod name in filelist.xml" steamID="123" />
 
         <requirement name="Some mod name in filelist.xml" steamID="123" condition="None" />
-        <optionalRequirement name="Some mod name in filelist.xml" steamID="123" />
 
         <requiredAnyOrder name="Some mod name in filelist.xml" steamID="123" />
 
