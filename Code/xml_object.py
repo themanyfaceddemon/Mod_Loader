@@ -138,20 +138,24 @@ class XMLElement:
         i = 0
         line = 1
 
-        if content.startswith("<?xml"):
-            i = content.find(">")
-            if i == -1:
-                raise XMLParserException(
-                    "Invalid <?xml>", line=line, position=0, content=content
-                )
-
         while i < len(content):
             if content[i] == "\n":
                 line += 1
                 i += 1
                 continue
 
-            if content[i : i + 4] == "<!--":
+            if content.startswith("<?", i):
+                pi_end = content.find("?>", i + 2)
+                if pi_end == -1:
+                    raise XMLParserException(
+                        "Invalid processing instruction",
+                        line=line,
+                        position=i,
+                        content=content,
+                    )
+                i = pi_end + 2
+
+            elif content.startswith("<!--", i):
                 end_comment = content.find("-->", i + 4)
                 if end_comment == -1:
                     raise XMLParserException(
@@ -161,23 +165,10 @@ class XMLElement:
                 comment = XMLComment(comment_text)
                 if stack:
                     stack[-1].add_child(comment)
-                # ignore for now
-                # else:
-                # raise XMLParserException(
-                #    f"Content starts with a comment\n|Content: {content}",
-                #    position=i,
-                #    line=line,
-                # )
-                ## WARNING: This is valid struct
-                ## <!--COLD CAVERNS-->
-                ## <levelobjects>
-                ## </levelobjects>
-
                 i = end_comment + 3
 
             elif content[i] == "<":
                 if content.startswith("</", i):
-                    # Closing tag
                     tag_start = i + 2
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
@@ -204,7 +195,6 @@ class XMLElement:
                         stack[-1].add_child(closed_element)
                     i = tag_end + 1
                 else:
-                    # Opening tag or self-closing tag
                     tag_start = i + 1
                     tag_end = content.find(">", tag_start)
                     if tag_end == -1:
@@ -217,7 +207,6 @@ class XMLElement:
                     if is_self_closing:
                         tag_content = tag_content[:-1].strip()
 
-                    # Parse tag name and attributes
                     parts = re.split(r"\s+", tag_content, maxsplit=1)
                     tag_name = parts[0]
                     attributes = {}
@@ -241,7 +230,6 @@ class XMLElement:
                     i = tag_end + 1
 
             else:
-                # Handle text content
                 text_start = i
                 next_tag_pos = content.find("<", i)
                 if next_tag_pos == -1:
