@@ -59,6 +59,12 @@ class XMLElement:
         self.attributes: Dict[str, str] = attributes if attributes is not None else {}
         self.childrens: List[Union["XMLElement", XMLComment]] = []
         self.content: str = ""
+        self.parent: Optional[XMLElement] = None
+
+    def add_child(self, child: Union["XMLElement", XMLComment]):
+        self.childrens.append(child)
+        if isinstance(child, XMLElement):
+            child.parent = self
 
     def get_attribute_ignore_case(self, key: str, default=None):
         key_lower = key.lower()
@@ -67,9 +73,6 @@ class XMLElement:
                 return attr_value
 
         return default
-
-    def add_child(self, child: Union["XMLElement", XMLComment]):
-        self.childrens.append(child)
 
     def iter_comment_childrens(self) -> Generator[XMLComment, None, None]:
         for elem in self.childrens:
@@ -255,8 +258,12 @@ class XMLElement:
         element: "XMLElement", pattern: str, exact_match: bool
     ) -> bool:
         if exact_match:
-            return element.name == pattern or pattern in element.attributes.values()
-        compiled_pattern = re.compile(pattern)
+            element_name_lower = element.name.lower()
+            pattern_lower = pattern.lower()
+            return element_name_lower == pattern_lower or pattern_lower in (
+                value.lower() for value in element.attributes.values()
+            )
+        compiled_pattern = re.compile(pattern, re.IGNORECASE)
         return compiled_pattern.search(element.name) is not None or any(
             compiled_pattern.search(value) for value in element.attributes.values()
         )
