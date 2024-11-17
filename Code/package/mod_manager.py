@@ -219,10 +219,10 @@ class ModManager:
         id_to_mod = {mod.id: mod for mod in mods}
         id_to_name = {mod.id: mod.name for mod in mods}
         active_mod_ids = set(id_to_mod.keys())
-        added_ids = {}
 
         dependency_graph = defaultdict(list)
         in_degree = defaultdict(int)
+        added_ids = {}
 
         for mod in mods:
             for dep in mod.metadata.dependencies:
@@ -261,14 +261,17 @@ class ModManager:
             for add_id in mod.add_id:
                 if add_id in added_ids:
                     logger.warning(
-                        f"Conflict: add_id '{add_id}' already added by {id_to_name[added_ids[add_id]]}"
-                    )
+                        f"Conflict: add_id '{add_id}' already added by '{id_to_name[added_ids[add_id]]}' but '{mod.name}' try add one more time"
+                    )  # ЕБАНЫЙ id_parser.py НЕ ПАРСИТ СУКА ПРАВИЛЬНО ПЕРЕЗАПИСЬ! АААААААААААААААААААААА FIXME СУКА
                 else:
                     added_ids[add_id] = mod.id
 
-                for other_mod in mods:
-                    if add_id in other_mod.override_id:
-                        dependency_graph[other_mod.id].append(mod.id)
+        for mod in mods:
+            for override_id in mod.override_id:
+                if override_id in added_ids:
+                    adder_mod_id = added_ids[override_id]
+                    if adder_mod_id != mod.id:
+                        dependency_graph[adder_mod_id].append(mod.id)
                         in_degree[mod.id] += 1
 
         queue = deque(
@@ -291,7 +294,6 @@ class ModManager:
                 if in_degree[neighbor_id] == 0:
                     queue.append(neighbor_id)
 
-        # Check for cycles or unresolved dependencies
         if len(sorted_mods) != len(mods):
             unresolved_mods = set(id_to_mod.keys()) - set(mod.id for mod in sorted_mods)
             unresolved_names = [id_to_name[mod_id] for mod_id in unresolved_mods]
