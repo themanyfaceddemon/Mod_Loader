@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional
 from collections import defaultdict, deque
-
+from .conditions import evaluate_condition
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLObject
 
@@ -216,89 +216,65 @@ class ModManager:
     @staticmethod
     def sort():
         mods = ModManager.active_mods
-
-        id_to_name = {mod.id: mod.name for mod in mods}
         id_to_mod = {mod.id: mod for mod in mods}
+        id_to_name = {mod.id: mod.name for mod in mods}
+        active_mod_ids = set(id_to_mod.keys())
+        added_ids = {}
 
         dependency_graph = defaultdict(list)
         in_degree = defaultdict(int)
 
-        add_id_owner = {}
-
         for mod in mods:
             for dep in mod.metadata.dependencies:
+                if dep.condition and not evaluate_condition(
+                    dep.condition, active_mod_ids
+                ):
+                    continue
+
+                dep_id = dep.id
+
+                if dep.dep_type == "conflict":
+                    if dep_id in id_to_mod:
+                        logger.error(
+                            f"Conflict detected between '{mod.name}' and '{id_to_name.get(dep_id, dep_id)}'."
+                        )
+                    continue
+
+                if dep_id not in id_to_mod:
+                    logger.warning(
+                        f"Dependency '{dep_id}' specified in mod '{mod.name}' not found among active mods."
+                    )
+                    continue
+
                 if dep.dep_type == "patch":
-                    dependency_graph[mod.id].append(dep.id)
-                    in_degree[mod.id] += 1
+                    dependency_graph[mod.id].append(dep_id)
+                    in_degree[dep_id] += 1
 
                 elif dep.dep_type == "requirement":
-                    dependency_graph[dep.id].append(mod.id)
-                    in_degree[dep.id] += 1
+                    dependency_graph[dep_id].append(mod.id)
+                    in_degree[mod.id] += 1
 
-                elif dep.dep_type == "optionalPatch":
-                    if dep.id in id_to_name:
-                        dependency_graph[mod.id].append(dep.id)
-                        in_degree[mod.id] += 1
-
-                elif dep.dep_type == "optionalRequirement":
-                    if dep.id in id_to_name:
-                        dependency_graph[dep.id].append(mod.id)
-                        in_degree[dep.id] += 1
+                elif dep.dep_type == "requiredAnyOrder":
+                    pass
 
         for mod in mods:
             for add_id in mod.add_id:
-                if add_id in add_id_owner:
+                if add_id in added_ids:
                     logger.warning(
-                        f"Conflict: add_id '{add_id}' already added by {id_to_name[add_id_owner[add_id]]}"
+                        f"Conflict: add_id '{add_id}' already added by {id_to_name[added_ids[add_id]]}"
                     )
                 else:
-                    add_id_owner[add_id] = mod.id
+                    added_ids[add_id] = mod.id
 
                 for other_mod in mods:
                     if add_id in other_mod.override_id:
-                        dependency_graph[mod.id].append(other_mod.id)
-                        in_degree[other_mod.id] += 1
-
-        def find_cycle(graph):
-            visited = set()
-            stack = []
-
-            def visit(node, path):
-                if node in path:
-                    cycle_start_index = path.index(node)
-                    return path[cycle_start_index:] + [node]
-
-                if node in visited:
-                    return None
-
-                visited.add(node)
-                path.append(node)
-                for neighbor in graph[node]:
-                    cycle = visit(neighbor, path)
-                    if cycle:
-                        return cycle
-
-                path.pop()
-                return None
-
-            for node in list(graph):
-                cycle = visit(node, stack)
-                if cycle:
-                    return cycle
-
-            return None
-
-        cycle = find_cycle(dependency_graph)
-        if cycle:
-            cycle_mod_names = [id_to_name.get(mod_id, str(mod_id)) for mod_id in cycle]
-            cycle_description = " -> ".join(cycle_mod_names)
-            logger.error(f"Cycle: {cycle_description}")
-            return
+                        dependency_graph[other_mod.id].append(mod.id)
+                        in_degree[mod.id] += 1
 
         queue = deque(
             sorted(
-                [mod.id for mod in mods if in_degree[mod.id] == 0],
-                key=lambda id_: id_to_name[id_],
+                [mod_id for mod_id in id_to_mod if in_degree[mod_id] == 0],
+                key=lambda id: id_to_name[id],
             )
         )
 
@@ -307,6 +283,7 @@ class ModManager:
             current_id = queue.popleft()
             current_mod = id_to_mod[current_id]
             sorted_mods.append(current_mod)
+
             for neighbor_id in sorted(
                 dependency_graph[current_id], key=lambda id_: id_to_name[id_]
             ):
@@ -314,8 +291,14 @@ class ModManager:
                 if in_degree[neighbor_id] == 0:
                     queue.append(neighbor_id)
 
-        remaining_mods = [mod for mod in mods if mod not in sorted_mods]
-        sorted_mods.extend(remaining_mods)
+        # Check for cycles or unresolved dependencies
+        if len(sorted_mods) != len(mods):
+            unresolved_mods = set(id_to_mod.keys()) - set(mod.id for mod in sorted_mods)
+            unresolved_names = [id_to_name[mod_id] for mod_id in unresolved_mods]
+            logger.error(
+                f"Unresolved dependencies or cycles detected for mods: {', '.join(unresolved_names)}"
+            )
+            return
 
         for i, mod in enumerate(sorted_mods, 1):
             mod.load_order = i
