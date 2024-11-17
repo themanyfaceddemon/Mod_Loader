@@ -40,35 +40,31 @@ class Identifier:
 
 @dataclass
 class Dependencie(Identifier):
-    dep_type: Literal[
-        "patch",
-        "optionalPatch",
-        "requirement",
-        "optionalRequirement",
-        "requiredAnyOrder",
-        "conflict",
-    ]
+    dep_type: Literal["patch", "requirement", "requiredAnyOrder", "conflict"]
     add_attribute: Dict[str, str]
+    condition: Optional[str] = None
 
     def __str__(self) -> str:
         additional_attributes = ", ".join(
             f"{k}={v}" for k, v in self.add_attribute.items()
         )
-        return f"Dependencie(type={self.dep_type}, id={self.id}, attributes={{{additional_attributes}}})"
+        return (
+            f"Dependencie(type={self.dep_type}, id={self.id}, "
+            f"condition={self.condition}, attributes={{{additional_attributes}}})"
+        )
 
     def __repr__(self) -> str:
         return (
             f"Dependencie(name={self.name}, steam_id={self.steam_id}, "
-            f"dep_type={self.dep_type}, add_attribute={self.add_attribute})"
+            f"dep_type={self.dep_type}, condition={self.condition}, "
+            f"add_attribute={self.add_attribute})"
         )
 
     @staticmethod
     def is_valid_type(value: str):
         return value in {
             "patch",
-            "optionalPatch",
             "requirement",
-            "optionalRequirement",
             "requiredAnyOrder",
             "conflict",
         }
@@ -280,32 +276,33 @@ class ModUnit(Identifier):
                     dep_type = ch.name
 
                     if not Dependencie.is_valid_type(dep_type):
-                        raise ValueError(
-                            f"Invalid dependency type: '{dep_type}' in element {ch}"
+                        logger.warning(
+                            f"Ignoring unsupported dependency type '{dep_type}' in {ch}"
                         )
+                        continue
 
                     name = ch.attributes.get("name")
                     steam_id = ch.attributes.get("steamID")
+                    condition = ch.attributes.get("condition")
 
-                    if not name:
-                        raise ValueError(
-                            f"Dependency element missing 'name' attribute in element {ch}"
+                    if not name and not steam_id:
+                        logger.error(
+                            f"Dependency element missing 'name' or 'steamID' attribute in element {ch}"
                         )
-
-                    if not steam_id:
-                        raise ValueError(
-                            f"Dependency element missing 'steamID' attribute in element {ch}"
-                        )
+                        continue
 
                     add_attributes = ch.attributes.copy()
+                    add_attributes.pop("name", None)
                     add_attributes.pop("steamID", None)
+                    add_attributes.pop("condition", None)
 
                     dependency = Dependencie(
-                        name=name,
+                        name=name or "",
                         steam_id=steam_id,
                         dep_type=dep_type,  # type: ignore
                         add_attribute=add_attributes,
+                        condition=condition,
                     )
                     dependencies.append(dependency)
 
-                obj.metadata.dependencies = dependencies
+                obj.metadata.dependencies.extend(dependencies)
