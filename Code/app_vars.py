@@ -11,40 +11,41 @@ class AppConfig:
 
     _root: Path = Path(__file__).parents[1]
     _data_root: Path = _root / "Data"
-    _user_config_path: Path = Path()
+    _user_data_path: Path = Path()
 
     @classmethod
     def init(cls, debug=False) -> None:
         if platform.system() == "Windows":
-            AppConfig._user_config_path = (
-                Path.home()
-                / "AppData"
-                / "Roaming"
-                / "BarotraumaModdingTool"
-                / "config.json"
+            cls._user_data_path = (
+                Path.home() / "AppData" / "Roaming" / "BarotraumaModdingTool"
             )
+        
         elif platform.system() == "Linux":
-            AppConfig._user_config_path = (
-                Path.home() / ".config" / "BarotraumaModdingTool" / "config.json"
-            )
+            cls._user_data_path = Path.home() / ".config" / "BarotraumaModdingTool"
+        
         elif platform.system() == "Darwin":
-            AppConfig._user_config_path = (
+            cls._user_data_path = (
                 Path.home()
                 / "Library"
                 / "Application Support"
                 / "BarotraumaModdingTool"
-                / "config.json"
             )
+        
+        else:
+            raise RuntimeError("Unknown operating system")
 
+        cls._user_data_path.mkdir(parents=True, exist_ok=True)
         cls._load_user_config()
         cls.set("debug", debug)
         atexit.register(cls._save_user_config)
 
     @classmethod
     def _load_user_config(cls) -> None:
-        if cls._user_config_path.exists():
+        config_path = cls._user_data_path / "config.json"
+
+        if config_path.exists():
             try:
-                with open(cls._user_config_path, "r", encoding="utf-8") as file:
+                with open(config_path, "r", encoding="utf-8") as file:
                     cls.user_config = json.load(file)
 
             except json.JSONDecodeError as err:
@@ -52,11 +53,10 @@ class AppConfig:
 
     @classmethod
     def _save_user_config(cls) -> None:
+        config_path = cls._user_data_path / "config.json"
         cls.user_config.pop("debug")
 
-        cls._user_config_path.mkdir(parents=True, exist_ok=True)
-
-        with open(cls._user_config_path, "w", encoding="utf-8") as file:
+        with open(config_path, "w", encoding="utf-8") as file:
             json.dump(cls.user_config, file, indent=4, sort_keys=True)
 
     @classmethod
