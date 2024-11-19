@@ -1,32 +1,77 @@
 <!-- Example of metadata.xml for mods -->
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
+    <!--
+    The <settings> block is used to define general settings for the modification.
+    Each setting specifies a particular rule or behavior:
+        - IgnoreLUACheck: Whether to ignore the check for .lua files in the modification (true/false, default: false).
+        
+        - DisableCSDLLCheck: Whether to ignore the check for .dll and .cs files (true/false, default: false).
+        
+        - IgnoreOverrideCheck: Whether to ignore override checks, preventing the system from sorting the mod based on its overrides (true/false, default: false).
+    -->
     <settings>
         <setting name="IgnoreLUACheck" value="false" />
         <setting name="DisableCSDLLCheck" value="false" />
+        <setting name="IgnoreOverrideCheck" value="false" />
     </settings>
 
+    <!--
+    The <meta> block contains additional metadata about the modification.
+    This is optional but recommended for better user visibility. 
+
+    Elements:
+        - <author>: Specifies the author's name (default: Not set).
+        
+        - <license>: Specifies the license type (default: Not set).
+        
+        - <warning>: Warnings displayed to the user regardless of conditions. Each line represents a new warning.
+        
+        - <error>: Errors displayed to the user regardless of conditions. Each line represents a new error.
+    -->
     <meta>
         <author>Author's Name</author>
         <license>License type here</license>
+
         <warning>
             Ensure compatible mods are installed.
-            More warnings.
         </warning>
 
         <error>
             Mod loading failed due to incompatibility.
-            More errors.
         </error>
     </meta>
 
+    <!--
+    The <dependencies> block defines the relationships of this mod with other mods. 
+    It helps manage load order, required mods, and conflicts.
+
+    Available dependency types:
+        - <patch>: Specifies that this mod should be placed ABOVE the listed mod.
+            Attributes:
+                - name: The readable name of the dependency mod.
+                - steamID: The Steam ID of the dependency mod.
+                - condition: Condition under which this dependency is applied (e.g., ifhas('ModName or steamID')). Default: "None".
+
+        - <requirement>: Specifies that this mod should be placed BELOW the listed mod.
+            Attributes are the same as for <patch>.
+
+        - <requiredAnyOrder>: Specifies that the listed mod must be enabled for this mod to work.
+            Attributes:
+                - name: The readable name of the required mod.
+                - steamID: The Steam ID of the required mod.
+
+        - <conflict>: Specifies that this mod cannot be combined with the listed mod.
+            Attributes:
+                - name: The readable name of the conflicting mod.
+                - steamID: The Steam ID of the conflicting mod.
+                - message: A message displayed when the conflict is detected (default: "Conflict detected").
+                - level: The severity of the conflict. Values: "warning" or "error" (default: "error").
+    -->
     <dependencies>
         <patch name="Some mod name in filelist.xml" steamID="123" condition="None"/>
-
         <requirement name="Some mod name in filelist.xml" steamID="123" condition="None" />
-
         <requiredAnyOrder name="Some mod name in filelist.xml" steamID="123" />
-
-        <conflict name="Some mod name in filelist.xml" steamID="123" message="Conflict detected" level="warning" />
+        <conflict name="Some mod name in filelist.xml" steamID="123" message="Conflict detected" level="error" />
     </dependencies>
 </metadata>
