@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 from Code.xml_object import XMLElement
 
@@ -17,203 +17,114 @@ class IDParserUnit:
         return IDParserUnit(set(), set())
 
 
-def _get_identifiers_for_list(prefix: str, identifier_key: str = "identifier"):
-    return lambda element, *args, **kwargs: [
-        f"{prefix}.{child.get_attribute_ignore_case(identifier_key, child.name)}"
-        for elem in element.iter_non_comment_childrens()
-        for child in (
-            elem.iter_non_comment_childrens() if elem.name == "Override" else [elem]
-        )
-    ]
+def get_ids(obj: Optional[XMLElement]) -> IDParserUnit:
+    return_obj = IDParserUnit.create_empty()
+
+    if not obj or obj.name.lower() in ["infotext", "infotexts"]:
+        return return_obj
+
+    _pars(obj, return_obj)
+
+    return return_obj
 
 
-_get_afflictions_identifier = _get_identifiers_for_list("Affliction")
-_get_backgroundcreatures_identifier = _get_identifiers_for_list("BackgroundCreature")
-_get_items_identifier = _get_identifiers_for_list("Item")
-_get_levelgenerationparameters_identifier = _get_identifiers_for_list(
-    "LevelGenerationParameter"
-)
-_get_levelobjects_identifier = _get_identifiers_for_list("LevelObjects")
-_get_locationtypes_identifier = _get_identifiers_for_list("LocationType")
-_get_missions_identifier = _get_identifiers_for_list("Mission")
-_get_prefabs_identifier = _get_identifiers_for_list("Prefab")
-_get_sounds_identifier = _get_identifiers_for_list("Sound")
+def _contecst_rule(con_type: str):
+    def _rule(
+        obj: XMLElement,
+        stack: List[Tuple[XMLElement, bool, Optional[str]]],
+        is_override: bool,
+        id_p_u: IDParserUnit,
+    ):
+        for ch in obj.iter_non_comment_childrens():
+            if obj.name.lower() == "override":
+                stack.append((ch, True, con_type))
+                continue
+
+            stack.append((ch, is_override, con_type))
+
+    return _rule
 
 
-def _get_identifier(prefix: str, identifier: str = "identifier"):
-    return (
-        lambda element,
-        *args,
-        **kwargs: f"{prefix}.{element.get_attribute_ignore_case(identifier, element.name)}"
-    )
+def _id_rule(prefix: str, id_fild: str = "identifier"):
+    def _rule(
+        obj: XMLElement,
+        stack: List[Tuple[XMLElement, bool, Optional[str]]],
+        is_override: bool,
+        id_p_u: IDParserUnit,
+    ):
+        if is_override:
+            id_p_u.override_id.add(f"{prefix}.{obj.attributes.get(id_fild, obj.name)}")
+        else:
+            id_p_u.add_id.add(f"{prefix}.{obj.attributes.get(id_fild, obj.name)}")
+
+    return _rule
 
 
-_get_affliction_identifier = _get_identifier("Affliction")
-_get_cave_identifier = _get_identifier("Cave")
-_get_character_indefier = _get_identifier("Character", "SpeciesName")
-_get_charactervariant_identifier = _get_identifier("Charactervariant", "speciesname")
-_get_conversations_identifier = _get_identifier("Conversations")
-_get_corpse_identifier = _get_identifier("Corpse")
-_get_eventset_identifier = _get_identifier("EventSet")
-_get_eventsprites_identifier = _get_identifier("EventSprite")
-_get_faction_identifier = _get_identifier("Faction")
-_get_item_identifier = _get_identifier("Item")
-_get_job_identifier = _get_identifier("Job")
-_get_npcset_indefier = _get_identifier("NPCSet")
-_get_order_identifier = _get_identifier("Order")
-_get_outpostconfig_identifier = _get_identifier("OutpostConfig")
-_get_ragdoll_indefier = _get_identifier("Ragdoll", "type")
-_get_scriptedevent_identifier = _get_identifier("ScriptedEvent")
-_get_talent_identifier = _get_identifier("Talant")
-_get_talenttree_identifier = _get_identifier("TalentTree", "jobidentifier")
-_get_upgrademodule_identifier = _get_identifier("UpgradeModule")
-
-
-def iterate_children(element: XMLElement, stack: List[XMLElement], *args, **kwargs):
-    if element.childrens:
-        for child in element.iter_non_comment_childrens():
-            stack.append(child)
-
-
-def ignore(element: XMLElement, *args, **kwargs):
-    return None
-
-
-def is_animation(element: XMLElement) -> Optional[str]:
-    anim_type = element.get_attribute_ignore_case("animationtype")
+def _is_animation(obj: XMLElement) -> Optional[str]:
+    anim_type = obj.get_attribute_ignore_case("animationtype")
     if not anim_type:
         return None
 
     if anim_type in ["SwimSlow", "SwimFast"]:
-        return f"WaterAnimation.{element.name}"
+        return f"WaterAnimation.{obj.name}"
 
     if anim_type in ["Walk", "Run", "Crouch"]:
-        return f"GroungAnimation.{element.name}"
+        return f"GroungAnimation.{obj.name}"
 
     return None
 
 
-class IDParser:
-    processing_rules = {
-        "affliction": _get_affliction_identifier,
-        "afflictions": _get_afflictions_identifier,
-        "backgroundcreatures": _get_backgroundcreatures_identifier,
-        "campaignsettingpresets": ignore,  # Cain: Maybe I'm wrong
-        "cave": _get_cave_identifier,
-        "cavegenerationparameters": iterate_children,
-        "character": _get_character_indefier,
-        "charactervariant": _get_charactervariant_identifier,
-        "clientpermissions": ignore,  # Cain: Maybe I'm wrong
-        "conversations": _get_conversations_identifier,
-        "corpse": _get_corpse_identifier,
-        "corpses": iterate_children,
-        "doc": ignore,
-        "eventprefabs": iterate_children,
-        "eventset": _get_eventset_identifier,
-        "eventsprites": _get_eventsprites_identifier,
-        "faction": _get_faction_identifier,
-        "factions": iterate_children,
-        "hintmanager": ignore,  # Cain: wtf?
-        "huskappendage": ignore,  # Cain: Maybe I'm wrong
-        "infotext": ignore,
-        "infotexts": ignore,
-        "item": _get_item_identifier,
-        "itemassembly": ignore,  # Cain: Maybe I'm wrong
-        "items": _get_items_identifier,
-        "job": _get_job_identifier,
-        "jobs": iterate_children,
-        "karmamanager": ignore,  # Cain: Maybe I'm wrong
-        "levelgenerationparameters": _get_levelgenerationparameters_identifier,
-        "levelobjects": _get_levelobjects_identifier,
-        "locationtypes": _get_locationtypes_identifier,
-        "mapgenerationparameters": lambda *args, **kwargs: "MapGenerationParameters",
-        "member": ignore,  # Cain: from doc
-        "missions": _get_missions_identifier,
-        "names": ignore,  # Cain: idn how to identifier this
-        "npcset": _get_npcset_indefier,
-        "npcsets": iterate_children,
-        "options": ignore,
-        "order": _get_order_identifier,
-        "orders": iterate_children,
-        "outpostconfig": _get_outpostconfig_identifier,
-        "outpostgenerationparameters": iterate_children,
-        "override": iterate_children,
-        "permissionpresets": ignore,  # Cain: Maybe I'm wrong
-        "prefabs": _get_prefabs_identifier,
-        "ragdoll": _get_ragdoll_indefier,
-        "randomevents": iterate_children,
-        "runconfig": ignore,
-        "scriptedevent": _get_scriptedevent_identifier,
-        "sounds": _get_sounds_identifier,
-        "spritedeformation": ignore,  # Cain: Maybe I'm wrong
-        "style": lambda *args, **kwargs: "Style",
-        "talent": _get_talent_identifier,
-        "talents": iterate_children,
-        "talenttree": _get_talenttree_identifier,
-        "talenttrees": iterate_children,
-        "upgradecategory": ignore,  # Cain: Maybe I'm wrong
-        "upgrademodule": _get_upgrademodule_identifier,
-        "upgrademodules": iterate_children,
-        "wreckaiconfig": lambda *args, **kwargs: "WreckAIConfig",
-    }
+def _ignore(*args, **kwargs):
+    return
 
-    @staticmethod
-    def get_ids(root_element: XMLElement) -> IDParserUnit:
-        id_parser_unit = IDParserUnit.create_empty()
-        stack = [root_element]
 
-        while stack:
-            element = stack.pop()
-            element_type = element.name.lower()
+_RULES = {"items": _contecst_rule("item"), "item": _id_rule("item")}
 
-            rule = IDParser.processing_rules.get(element_type, None)
 
-            if rule:
-                element_id = rule(element=element, stack=stack)
-                if element_id:
-                    if isinstance(element_id, str):
-                        id_parser_unit.add_id.add(element_id)
+def _pars(
+    obj: XMLElement,
+    id_p_u: IDParserUnit,
+):
+    cur_stack: List[Tuple[XMLElement, bool, Optional[str]]] = [(obj, False, None)]
 
-                    elif isinstance(element_id, (set, list)):
-                        id_parser_unit.add_id.update(element_id)
+    while cur_stack:
+        cur_obj = cur_stack.pop()
+        obj_el = cur_obj[0]
+        obj_name = cur_obj[0].name.lower()
+        is_override = cur_obj[1]
+        cur_contecst = cur_obj[2]
+
+        if obj_name == "override":
+            for ch in obj_el.iter_non_comment_childrens():
+                cur_stack.append((ch, True, cur_contecst))
+
+            continue
+
+        name_rule = _RULES.get(obj_name)
+        if name_rule:
+            name_rule(obj_el, cur_stack, is_override, id_p_u)
+
+        elif cur_contecst:
+            con_rule = _RULES.get(cur_contecst)
+            if con_rule:
+                con_rule(obj_el, cur_stack, is_override, id_p_u)
 
             else:
-                anim_id = is_animation(element)
-                if not anim_id:
-                    logger.warning(f"Unknown rule for '{element.name}'")
-                else:
-                    id_parser_unit.add_id.add(anim_id)
-
-        for override_element in root_element.find_only_elements("Override", True):
-            elements_to_process = (
-                list(override_element.iter_non_comment_childrens())
-                if override_element is root_element
-                else [override_element]
-            )
-
-            for elem in elements_to_process:
-                elem_type = elem.name.lower()
-                rule = IDParser.processing_rules.get(elem_type, None)
-
-                if rule:
-                    element_id = rule(element=elem, stack=[])
-                    if element_id:
-                        if isinstance(element_id, str):
-                            id_parser_unit.override_id.add(element_id)
-                            id_parser_unit.add_id.discard(element_id)
-
-                        elif isinstance(element_id, (set, list)):
-                            id_parser_unit.override_id.update(element_id)
-                            for id_ in element_id:
-                                id_parser_unit.add_id.discard(id_)
-
-                else:
-                    anim_id = is_animation(elem)
-                    if not anim_id:
-                        logger.warning(f"Unknown rule for '{elem.name}' in override")
-
+                anim_id = _is_animation(obj_el)
+                if anim_id:
+                    if is_override:
+                        id_p_u.override_id.add(anim_id)
                     else:
-                        id_parser_unit.override_id.add(anim_id)
-                        id_parser_unit.add_id.discard(anim_id)
+                        id_p_u.add_id.add(anim_id)
+                else:
+                    logger.warning(f"Rule not set for: {obj_name}")
 
-        return id_parser_unit
+        else:
+            anim_id = _is_animation(obj_el)
+            if anim_id:
+                if is_override:
+                    id_p_u.override_id.add(anim_id)
+                else:
+                    id_p_u.add_id.add(anim_id)
+            else:
+                logger.warning(f"Rule not set for: {obj_name}")

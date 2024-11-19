@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLObject
 
-from .id_parser import IDParser
+from .id_parser import get_ids
 
 logger = logging.getLogger("ModBuild")
 
@@ -222,7 +222,7 @@ class ModUnit(Identifier):
 
                 xml_obj = xml_obj.root
 
-                id_parser_unit = IDParser.get_ids(xml_obj)
+                id_parser_unit = get_ids(xml_obj)
                 obj.add_id.update(id_parser_unit.add_id)
                 obj.override_id.update(id_parser_unit.override_id)
 
