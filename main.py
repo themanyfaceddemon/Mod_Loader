@@ -1,5 +1,6 @@
 import argparse
 import logging
+import platform
 from pathlib import Path
 
 from colorama import Fore, Style, init
@@ -39,8 +40,7 @@ def configure_logging(debug: bool):
 
 def init_app_config(debug: bool) -> None:
     logging.debug("Initializing AppConfig...")
-    AppConfig.init()
-    AppConfig.set("debug", debug)
+    AppConfig.init(debug)
     logging.debug("AppConfig initialization complete.")
 
 
@@ -95,5 +95,9 @@ if __name__ == "__main__":
 
     configure_logging(args.debug)
 
+    if platform.system() == "Darwin":
+        logging.error(
+            "ModLoader does not currently support MacOS, may have bugs. Please report to https://github.com/themanyfaceddemon/Mod_Loader/issues any bugs"
+        )
+
     main(args.debug)
-    logging.debug("I am dead")
