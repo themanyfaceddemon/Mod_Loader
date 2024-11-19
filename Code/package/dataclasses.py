@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLObject
 
-from .id_parser import get_ids
+from .id_parser import extract_ids
 
 logger = logging.getLogger("ModBuild")
 
@@ -145,6 +145,23 @@ class ModUnit(Identifier):
             set(),
         )
 
+    def get_bool_settigs(self, key: str) -> Optional[bool]:
+        if key not in self.settings:
+            return None
+
+        value = self.settings[key]
+
+        if isinstance(value, bool):
+            return value
+
+        elif isinstance(value, str):
+            return value.lower() == "true"
+
+        elif isinstance(value, (int | float)):
+            return value > 0
+
+        return False
+
     @staticmethod
     def build_by_path(path: (Path | str)) -> Optional["ModUnit"]:
         path = Path(path)
@@ -222,7 +239,7 @@ class ModUnit(Identifier):
 
                 xml_obj = xml_obj.root
 
-                id_parser_unit = get_ids(xml_obj)
+                id_parser_unit = extract_ids(xml_obj)
                 obj.add_id.update(id_parser_unit.add_id)
                 obj.override_id.update(id_parser_unit.override_id)
 

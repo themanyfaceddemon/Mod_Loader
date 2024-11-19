@@ -263,17 +263,18 @@ class ModManager:
                 if add_id in added_ids:
                     logger.warning(
                         f"Conflict: add_id '{add_id}' already added by '{id_to_name[added_ids[add_id]]}' but '{mod.name}' try add one more time"
-                    )  # ЕБАНЫЙ id_parser.py НЕ ПАРСИТ СУКА ПРАВИЛЬНО ПЕРЕЗАПИСЬ! АААААААААААААААААААААА FIXME СУКА
+                    )
                 else:
                     added_ids[add_id] = mod.id
 
         for mod in mods:
-            for override_id in mod.override_id:
-                if override_id in added_ids:
-                    adder_mod_id = added_ids[override_id]
-                    if adder_mod_id != mod.id:
-                        dependency_graph[adder_mod_id].append(mod.id)
-                        in_degree[mod.id] += 1
+            if not mod.get_bool_settigs("IgnoreOverrideCheck"):
+                for override_id in mod.override_id:
+                    if override_id in added_ids:
+                        adder_mod_id = added_ids[override_id]
+                        if adder_mod_id != mod.id:
+                            dependency_graph[adder_mod_id].append(mod.id)
+                            in_degree[mod.id] += 1
 
         queue = deque(
             sorted(
