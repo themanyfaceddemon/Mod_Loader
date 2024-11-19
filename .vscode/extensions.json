@@ -5,7 +5,6 @@
         "ms-python.python",
         "ms-python.debugpy",
         "KevinRose.vsc-python-indent",
-        "kaih2o.python-resource-monitor",
         "charliermarsh.ruff",
         "wayou.vscode-todo-highlight"
     ]
