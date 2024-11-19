@@ -1,12 +1,13 @@
 import logging
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional
-from collections import defaultdict, deque
-from .conditions import evaluate_condition
+
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLObject
 
+from .conditions import evaluate_condition
 from .dataclasses import ModUnit
 
 logger = logging.getLogger("ModManager")
