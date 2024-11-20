@@ -296,7 +296,7 @@ class AppInterface:
                                     code = loc.get_string(
                                         "cac-translators-thx",
                                         lang_code=loc.get_string(
-                                            f"lang_code-{contributor.get("code", "")}"
+                                            f"lang_code-{contributor.get('code', '')}"
                                         ),
                                     )
                                     dpg.add_text(name, color=(0, 150, 255))
