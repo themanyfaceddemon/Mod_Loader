@@ -155,7 +155,9 @@ class ModWindow:
                 with dpg.group(horizontal=True):
                     dpg.add_text(loc.get_string("label-license"), color=[169, 169, 169])
                     dpg.add_text(
-                        mod.metadata.license,
+                        loc.get_string(mod.metadata.license)
+                        if loc.has_string(mod.metadata.license)
+                        else mod.metadata.license,
                         color=[169, 169, 169],
                     )
 
@@ -174,6 +176,9 @@ class ModWindow:
                 if mod.metadata.errors:
                     dpg.add_text(loc.get_string("label-errors"), color=[255, 0, 0])
                     for error in mod.metadata.errors[:3]:
+                        error = (
+                            loc.get_string(error) if loc.has_string(error) else error
+                        )
                         dpg.add_text(error, wrap=0, bullet=True)
 
                     if len(mod.metadata.errors) > 3:
@@ -186,6 +191,11 @@ class ModWindow:
                 if mod.metadata.warnings:
                     dpg.add_text(loc.get_string("label-warnings"), color=[255, 255, 0])
                     for warning in mod.metadata.warnings[:3]:
+                        warning = (
+                            loc.get_string(warning)
+                            if loc.has_string(warning)
+                            else warning
+                        )
                         dpg.add_text(warning, wrap=0, bullet=True)
 
                     if len(mod.metadata.warnings) > 3:
@@ -250,7 +260,9 @@ class ModWindow:
                             loc.get_string("label-license"), color=[169, 169, 169]
                         )
                         dpg.add_text(
-                            mod.metadata.license,
+                            loc.get_string(mod.metadata.license)
+                            if loc.has_string(mod.metadata.license)
+                            else mod.metadata.license,
                             color=[169, 169, 169],
                         )
 
@@ -285,12 +297,16 @@ class ModWindow:
             if mod.metadata.errors:
                 dpg.add_text(loc.get_string("label-errors"), color=[255, 0, 0])
                 for error in mod.metadata.errors:
+                    error = loc.get_string(error) if loc.has_string(error) else error
                     dpg.add_text(error, wrap=0, bullet=True)
                 dpg.add_separator()
 
             if mod.metadata.warnings:
                 dpg.add_text(loc.get_string("label-warnings"), color=[255, 255, 0])
                 for warning in mod.metadata.warnings:
+                    warning = (
+                        loc.get_string(warning) if loc.has_string(warning) else warning
+                    )
                     dpg.add_text(warning, wrap=0, bullet=True)
                 dpg.add_separator()
 

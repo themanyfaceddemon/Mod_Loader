@@ -1,3 +1,5 @@
+mod-tab-label = Менеджмент модификаций
+
 label-active-mods = Активные модификации
 label-inactive-mods = Не активные модификации
 
