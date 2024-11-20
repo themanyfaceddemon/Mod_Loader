@@ -40,24 +40,24 @@ class Identifier:
 
 @dataclass
 class Dependencie(Identifier):
-    dep_type: Literal["patch", "requirement", "requiredAnyOrder", "conflict"]
-    add_attribute: Dict[str, str]
+    type: Literal["patch", "requirement", "requiredAnyOrder", "conflict"]
+    attributes: Dict[str, str]
     condition: Optional[str] = None
 
     def __str__(self) -> str:
         additional_attributes = ", ".join(
-            f"{k}={v}" for k, v in self.add_attribute.items()
+            f"{k}={v}" for k, v in self.attributes.items()
         )
         return (
-            f"Dependencie(type={self.dep_type}, id={self.id}, "
+            f"Dependencie(type={self.type}, id={self.id}, "
             f"condition={self.condition}, attributes={{{additional_attributes}}})"
         )
 
     def __repr__(self) -> str:
         return (
             f"Dependencie(name={self.name}, steam_id={self.steam_id}, "
-            f"dep_type={self.dep_type}, condition={self.condition}, "
-            f"add_attribute={self.add_attribute})"
+            f"dep_type={self.type}, condition={self.condition}, "
+            f"attributes={self.attributes})"
         )
 
     @staticmethod
@@ -119,6 +119,7 @@ class Metadata:
 class ModUnit(Identifier):
     local: bool
     load_order: Optional[int]
+    path: Path
 
     metadata: Metadata
 
@@ -137,6 +138,7 @@ class ModUnit(Identifier):
             None,
             False,
             None,
+            Path(),
             Metadata.create_empty(),
             False,
             False,
@@ -144,6 +146,13 @@ class ModUnit(Identifier):
             set(),
             set(),
         )
+
+    def get_path(self) -> str:
+        if not self.local:
+            return str(self.path)
+
+        else:
+            return f"LocalMods/{self.path.parts[-1]}"
 
     def get_bool_settigs(self, key: str) -> Optional[bool]:
         if key not in self.settings:
@@ -178,6 +187,7 @@ class ModUnit(Identifier):
 
         ModUnit.parse_filelist(obj, path)
 
+        obj.path = path
         obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
         obj.use_cs = any(
             [
@@ -258,12 +268,14 @@ class ModUnit(Identifier):
 
             if found_files:
                 metadata_path = found_files[0]
+
             else:
                 return
 
         xml_obj = XMLObject.load_file(metadata_path)
         if not xml_obj.root:
             raise ValueError(f"Empty metadata.xml for {obj.id}!")
+
         xml_obj = xml_obj.root
 
         for element in xml_obj.iter_non_comment_childrens():
@@ -316,10 +328,43 @@ class ModUnit(Identifier):
                     dependency = Dependencie(
                         name=name or "",
                         steam_id=steam_id,
-                        dep_type=dep_type,  # type: ignore
-                        add_attribute=add_attributes,
+                        type=dep_type,  # type: ignore
+                        attributes=add_attributes,
                         condition=condition,
                     )
                     dependencies.append(dependency)
 
                 obj.metadata.dependencies.extend(dependencies)
+
+    def update_meta_errors(self) -> None:
+        metadata_path = self.path / "metadata.xml"
+
+        self.metadata.errors.clear()
+        self.metadata.warnings.clear()
+
+        if not metadata_path.exists():
+            search_pattern = f"{self.id}.xml"
+            found_files = list(
+                (AppConfig.get_data_root() / "InternalLibrary").rglob(search_pattern)
+            )
+
+            if found_files:
+                metadata_path = found_files[0]
+
+            else:
+                return
+
+        xml_obj = XMLObject.load_file(metadata_path)
+        if not xml_obj.root:
+            raise ValueError(f"Empty metadata.xml for {self.id}!")
+
+        xml_obj = xml_obj.root
+
+        for element in xml_obj.find_only_elements("meta"):
+            for ch in element.iter_non_comment_childrens():
+                ch_name_lower = ch.name.lower()
+                if ch_name_lower == "warning":
+                    self.metadata.warnings.extend(ch.content.strip().splitlines())
+
+                elif ch_name_lower == "error":
+                    self.metadata.errors.extend(ch.content.strip().splitlines())

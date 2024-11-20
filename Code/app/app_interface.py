@@ -10,6 +10,7 @@ import requests
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
+from Code.package import ModManager
 
 from .barotrauma_window import BarotraumaWindow
 from .mod_window import ModWindow
@@ -117,7 +118,7 @@ class AppInterface:
 
     @staticmethod
     def start_game():
-        ModLoader.save_mods()
+        ModManager.save_mods()
 
         game_dir = AppConfig.get("barotrauma_dir", None)
         if not game_dir:

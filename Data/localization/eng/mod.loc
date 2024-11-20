@@ -24,3 +24,5 @@ label-see-full-details = See full details
 label-mod-name = Modification name:
 
 label-license = License:
+
+mod-unfind-mod = Requires mod {mod_name}|{mod_id}

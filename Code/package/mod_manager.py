@@ -1,3 +1,4 @@
+import atexit
 import logging
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -5,7 +6,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from Code.app_vars import AppConfig
-from Code.xml_object import XMLObject
+from Code.loc import Localization as loc
+from Code.xml_object import XMLComment, XMLElement, XMLObject
 
 from .conditions import evaluate_condition
 from .dataclasses import ModUnit
@@ -18,25 +20,21 @@ class ModManager:
     inactive_mods: List[ModUnit] = []
 
     @staticmethod
-    def load_mods_and_configs():
+    def init():
+        ModManager.load_mods()
+        ModManager.load_lua_config()
+        atexit.register(ModManager.save_mods)
+
+    @staticmethod
+    def load_mods():
+        game_path = AppConfig.get_game_path()
+        if not game_path:
+            return
+
         ModManager.active_mods.clear()
         ModManager.inactive_mods.clear()
-
-        game_path = AppConfig.get("barotrauma_dir", None)
-
-        if game_path is None:
-            logger.error("Game path not set!")
-            return
-        else:
-            game_path = Path(game_path)
-
-        if not game_path.exists():
-            logger.error(f"Game path dont exists!\n|Path: {game_path}")
-            return
-
         ModManager.load_active_mods(game_path / "config_player.xml")
         ModManager.load_inactive_mods(AppConfig.get("barotrauma_install_mod_dir"))
-        ModManager.load_lua_config(game_path)
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -121,12 +119,12 @@ class ModManager:
                     ModManager.inactive_mods.append(mod)
 
     @staticmethod
-    def load_lua_config(path_to_game: Path):
-        if not path_to_game.exists():
-            logger.error(f"Game path does not exist: {path_to_game}")
+    def load_lua_config():
+        game_path = AppConfig.get_game_path()
+        if not game_path:
             return
 
-        config_path = path_to_game / "LuaCsSetupConfig.xml"
+        config_path = game_path / "LuaCsSetupConfig.xml"
         if config_path.exists():
             xml_obj = XMLObject.load_file(config_path).root
             has_cs = (
@@ -141,7 +139,7 @@ class ModManager:
             AppConfig.set("has_cs", False)
             logger.debug("LuaCsSetupConfig.xml not found, disabling CS scripting.")
 
-        lua_dep_path = path_to_game / "Barotrauma.deps.json"
+        lua_dep_path = game_path / "Barotrauma.deps.json"
         if lua_dep_path.exists():
             with open(lua_dep_path, "r", encoding="utf-8") as file:
                 has_lua = "Luatrauma" in file.read()
@@ -215,6 +213,99 @@ class ModManager:
             ModManager.inactive_mods.append(mod)
 
     @staticmethod
+    def save_mods() -> None:
+        game_path = AppConfig.get("barotrauma_dir", None)
+        if not game_path:
+            logger.error("Game path not set!")
+            return
+
+        game_path = Path(game_path)
+        if not game_path.exists():
+            logger.error(f"Game path does not exist!\n|Path: {game_path}")
+            return
+
+        user_config = game_path / "config_player.xml"
+        if not user_config.exists():
+            logger.error(f"config_player.xml does not exist!\n|Path: {user_config}")
+            return
+
+        user_config = user_config.resolve()
+        if not user_config.is_file():
+            logger.error(f"Resolved path is not a valid file: {user_config}")
+            return
+
+        obj = XMLObject.load_file(user_config)
+        if obj.root is None:
+            logger.error(f"Invalid config_player.xml\n|Path: {user_config}")
+            return
+
+        obj = obj.root
+        regularpackages = next(
+            (item for item in obj.find_only_elements("regularpackages")), None
+        )
+        if regularpackages is None:
+            logger.error("No 'regularpackages' element found in config_player.xml.")
+            return
+
+        regularpackages.childrens.clear()
+
+        for mod in ModManager.active_mods:
+            mod_path = mod.get_path()
+            regularpackages.add_child(XMLComment(mod.name))
+            regularpackages.add_child(
+                XMLElement("package", {"path": f"{mod_path}/filelist.xml"})
+            )
+
+        try:
+            user_config.unlink()
+            with open(str(user_config), "w", encoding="utf-8") as file:
+                file.write(obj.dump())
+
+        except Exception as e:
+            logger.error(f"Failed to write to {user_config}: {e}")
+            return
+
+    @staticmethod
+    def process_errors():
+        all_mods = ModManager.active_mods + ModManager.inactive_mods
+        active_mods_ids = {mod.id for mod in ModManager.active_mods}
+
+        for mod in all_mods:
+            mod.update_meta_errors()
+            for dep in mod.metadata.dependencies:
+                if dep.type == "conflict":
+                    if dep.id in active_mods_ids:
+                        level = dep.attributes.get("level", "error")
+                        if level == "warning":
+                            mod.metadata.warnings.append(
+                                dep.attributes.get("message", "base-conflict")
+                            )
+                        else:
+                            mod.metadata.errors.append(
+                                dep.attributes.get("message", "base-conflict")
+                            )
+
+                elif dep.condition:
+                    if evaluate_condition(dep.condition, active_mods_ids):
+                        if dep.id not in active_mods_ids:
+                            mod.metadata.errors.append(
+                                loc.get_string(
+                                    "mod-unfind-mod",
+                                    mod_name=dep.name,
+                                    mod_id=dep.steam_id,
+                                )
+                            )
+                else:
+                    if dep.id not in active_mods_ids:
+                        mod.metadata.errors.append(
+                            loc.get_string(
+                                "mod-unfind-mod",
+                                mod_name=dep.name,
+                                mod_id=dep.steam_id,
+                            )
+                        )
+
+    @staticmethod
     def sort():
         mods = ModManager.active_mods
         id_to_mod = {mod.id: mod for mod in mods}
@@ -234,7 +325,7 @@ class ModManager:
 
                 dep_id = dep.id
 
-                if dep.dep_type == "conflict":
+                if dep.type == "conflict":
                     if dep_id in id_to_mod:
                         logger.error(
                             f"Conflict detected between '{mod.name}' and '{id_to_name.get(dep_id, dep_id)}'."
@@ -247,15 +338,15 @@ class ModManager:
                     )
                     continue
 
-                if dep.dep_type == "patch":
+                if dep.type == "patch":
                     dependency_graph[mod.id].append(dep_id)
                     in_degree[dep_id] += 1
 
-                elif dep.dep_type == "requirement":
+                elif dep.type == "requirement":
                     dependency_graph[dep_id].append(mod.id)
                     in_degree[mod.id] += 1
 
-                elif dep.dep_type == "requiredAnyOrder":
+                elif dep.type == "requiredAnyOrder":
                     pass
 
         for mod in mods:

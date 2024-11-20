@@ -7,3 +7,4 @@ base-start = Start
 base-close = Close
 base-unknown = Unknown
 base-not-specified = Not specified
+base-conflict = Conflict detected

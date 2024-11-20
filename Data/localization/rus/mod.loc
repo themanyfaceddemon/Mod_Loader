@@ -23,3 +23,5 @@ label-see-full-details = Смотрите в полной информации
 label-mod-name = Название модификации:
 
 label-license = Лицензия:
+
+mod-unfind-mod = Необходим мод {mod_name}|{mod_id}

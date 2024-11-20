@@ -1,4 +1,6 @@
+import gc
 import logging
+import threading
 
 import dearpygui.dearpygui as dpg
 
@@ -12,6 +14,8 @@ class App:
     @staticmethod
     def run() -> None:
         try:
+            dpg.show_debug()
+            dpg.show_metrics()
             dpg.start_dearpygui()
 
         except Exception as e:
@@ -19,6 +23,13 @@ class App:
 
         finally:
             logging.debug("Destroying app...")
+            gc.collect()
+
+            for thread in threading.enumerate():
+                logging.debug(
+                    f"Thread Name: {thread.name}, Alive: {thread.is_alive()}, Daemon: {thread.daemon}"
+                )
+
             dpg.destroy_context()
 
     @staticmethod

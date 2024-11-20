@@ -45,9 +45,9 @@ def init_app_config(debug: bool) -> None:
 
 
 def load_mods() -> None:
-    logging.debug("Loading mods...")
-    ModManager.load_mods_and_configs()
-    logging.debug("Mods loaded successfully.")
+    logging.debug("Loading mods and game configs...")
+    ModManager.init()
+    logging.debug("Mods and game configs loaded successfully.")
 
 
 def load_translations() -> None:

@@ -90,7 +90,7 @@ class BarotraumaWindow:
 
                 logger.info(f"Valid path set: {path}")
 
-                ModManager.load_mods_and_configs()
+                ModManager.load_mods()
                 ModWindow.render_mods()
                 return
             else:
