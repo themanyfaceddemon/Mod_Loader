@@ -1,3 +1,4 @@
+import logging
 import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig

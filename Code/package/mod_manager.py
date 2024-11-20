@@ -163,20 +163,43 @@ class ModManager:
         return None
 
     @staticmethod
-    def activate_mod(mod: ModUnit) -> None:
-        if mod in ModManager.inactive_mods:
+    def get_mod_by_id(mod_id: str) -> Optional[ModUnit]:
+        for mod in ModManager.active_mods + ModManager.inactive_mods:
+            if mod.id == mod_id:
+                return mod
+
+        return None
+
+    @staticmethod
+    def activate_mod(mod_id: str) -> bool:
+        mod = ModManager.get_mod_by_id(mod_id)
+        if mod and mod in ModManager.inactive_mods:
             ModManager.inactive_mods.remove(mod)
             ModManager.active_mods.append(mod)
+            return True
+
+        return False
 
     @staticmethod
-    def deactivate_mod(mod: ModUnit) -> None:
-        if mod in ModManager.active_mods:
+    def deactivate_mod(mod_id: str) -> bool:
+        mod = ModManager.get_mod_by_id(mod_id)
+        if mod and mod in ModManager.active_mods:
             ModManager.active_mods.remove(mod)
             ModManager.inactive_mods.append(mod)
+            return True
+
+        return False
 
     @staticmethod
-    def swap_active_mods(mod1: ModUnit, mod2: ModUnit) -> None:
-        try:
+    def swap_active_mods(mod_id1: str, mod_id2: str) -> None:
+        mod1 = ModManager.get_mod_by_id(mod_id1)
+        mod2 = ModManager.get_mod_by_id(mod_id2)
+        if (
+            mod1
+            and mod2
+            and mod1 in ModManager.active_mods
+            and mod2 in ModManager.active_mods
+        ):
             idx1, idx2 = (
                 ModManager.active_mods.index(mod1),
                 ModManager.active_mods.index(mod2),
@@ -186,12 +209,16 @@ class ModManager:
                 ModManager.active_mods[idx1],
             )
 
-        except ValueError:
-            pass
-
     @staticmethod
-    def swap_inactive_mods(mod1: ModUnit, mod2: ModUnit) -> None:
-        try:
+    def swap_inactive_mods(mod_id1: str, mod_id2: str) -> None:
+        mod1 = ModManager.get_mod_by_id(mod_id1)
+        mod2 = ModManager.get_mod_by_id(mod_id2)
+        if (
+            mod1
+            and mod2
+            and mod1 in ModManager.inactive_mods
+            and mod2 in ModManager.inactive_mods
+        ):
             idx1, idx2 = (
                 ModManager.inactive_mods.index(mod1),
                 ModManager.inactive_mods.index(mod2),
@@ -201,18 +228,17 @@ class ModManager:
                 ModManager.inactive_mods[idx1],
             )
 
-        except ValueError:
-            pass
-
     @staticmethod
-    def move_active_mod_to_end(mod: ModUnit) -> None:
-        if mod in ModManager.active_mods:
+    def move_active_mod_to_end(mod_id: str) -> None:
+        mod = ModManager.get_mod_by_id(mod_id)
+        if mod and mod in ModManager.active_mods:
             ModManager.active_mods.remove(mod)
             ModManager.active_mods.append(mod)
 
     @staticmethod
-    def move_inactive_mod_to_end(mod: ModUnit) -> None:
-        if mod in ModManager.inactive_mods:
+    def move_inactive_mod_to_end(mod_id: str) -> None:
+        mod = ModManager.get_mod_by_id(mod_id)
+        if mod and mod in ModManager.inactive_mods:
             ModManager.inactive_mods.remove(mod)
             ModManager.inactive_mods.append(mod)
 
@@ -272,7 +298,7 @@ class ModManager:
     @staticmethod
     def process_errors():
         active_mods_ids = {mod.id for mod in ModManager.active_mods}
-
+        bind_id = {}
         for mod in ModManager.active_mods:
             mod.update_meta_errors()
             for dep in mod.metadata.dependencies:
@@ -308,12 +334,30 @@ class ModManager:
                             )
                         )
 
+        for mod in ModManager.active_mods:
+            for over_id in mod.override_id:
+                if over_id not in bind_id:
+                    bind_id[over_id] = (mod.name, mod.id)
+
+        for mod in ModManager.active_mods:
+            for over_id in mod.override_id:
+                if over_id in bind_id:
+                    mod.metadata.warnings.append(
+                        loc.get_string(
+                            "mod-override-id",
+                            mod_name=bind_id[over_id][0],
+                            mod_id=bind_id[over_id][1],
+                            key_id=over_id,
+                        )
+                    )
+
     @staticmethod
     def sort():
         mods = ModManager.active_mods
         id_to_mod = {mod.id: mod for mod in mods}
         id_to_name = {mod.id: mod.name for mod in mods}
         active_mod_ids = set(id_to_mod.keys())
+        ban_ids = set()
 
         dependency_graph = defaultdict(list)
         in_degree = defaultdict(int)
@@ -330,16 +374,29 @@ class ModManager:
 
                 if dep.type == "conflict":
                     if dep_id in id_to_mod:
+                        ban_ids.add(dep_id)
                         logger.error(
                             f"Conflict detected between '{mod.name}' and '{id_to_name.get(dep_id, dep_id)}'."
                         )
                     continue
 
                 if dep_id not in id_to_mod:
-                    logger.warning(
-                        f"Dependency '{dep_id}' specified in mod '{mod.name}' not found among active mods."
-                    )
-                    continue
+                    if not ModManager.activate_mod(dep_id):
+                        logger.warning(
+                            f"Dependency '{dep_id}' specified in mod '{mod.name}' not found among active mods."
+                        )
+                        continue
+                    else:
+                        if dep_id in ban_ids:
+                            logger.error(
+                                f"Conflict detected between '{mod.name}' and '{id_to_name.get(dep_id, dep_id)}'."
+                            )
+                            continue
+
+                        on_mod = ModManager.get_mod_by_id(dep_id)
+                        id_to_mod[on_mod.id] = on_mod  # type: ignore
+                        id_to_name[on_mod.id] = on_mod.name  # type: ignore
+                        active_mod_ids.add(on_mod.id)  # type: ignore
 
                 if dep.type == "patch":
                     dependency_graph[mod.id].append(dep_id)
