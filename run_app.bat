@@ -3,6 +3,7 @@
 where python >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
     echo Python is not installed. Please install Python and try again.
+    pause
     exit /b
 )
 
@@ -14,10 +15,12 @@ for /f "delims=. tokens=1,2,3" %%a in ('python -c "import sys; print('.'.join(ma
 
 if %PYTHON_MAJOR% LSS 3 (
     echo Python version must be at least 3.12. Current version: %PYTHON_MAJOR%.%PYTHON_MINOR%.%PYTHON_PATCH%
+    pause
     exit /b 1
 )
 if %PYTHON_MAJOR% EQU 3 if %PYTHON_MINOR% LSS 12 (
     echo Python version must be at least 3.12. Current version: %PYTHON_MAJOR%.%PYTHON_MINOR%.%PYTHON_PATCH%
+    pause
     exit /b 1
 )
 
@@ -31,6 +34,7 @@ if not exist %VENV_DIR%\Scripts\activate (
     
     if not exist %VENV_DIR%\Scripts\activate (
         echo Failed to create virtual environment.
+        pause
         exit /b 1
     )
 
@@ -52,3 +56,4 @@ python main.py
 
 deactivate
 echo Application finished.
+pause
