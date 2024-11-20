@@ -7,7 +7,26 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            build-name: linux-64bit
+          - os: ubuntu-latest
+            arch: x86
+            build-name: linux-32bit
+          - os: ubuntu-latest
+            arch: arm64
+            build-name: linux-arm64
+          - os: windows-latest
+            arch: x64
+            build-name: windows-64bit
+          - os: windows-latest
+            arch: x86
+            build-name: windows-32bit
+          - os: windows-latest
+            arch: arm64
+            build-name: windows-arm64
+
 
     steps:
       - name: Checkout code
@@ -17,6 +36,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.12'
+          architecture: ${{ matrix.arch }}
 
       - name: Install PyInstaller and dependencies
         run: |
