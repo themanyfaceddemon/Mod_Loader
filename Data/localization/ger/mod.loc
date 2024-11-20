@@ -1,4 +1,4 @@
-mod-tab-label = Mod Manager # TODO @Nebual
+mod-tab-label = Mod Manager # TODO @profole 
 
 label-active-mods = Aktive Mods
 label-inactive-mods = Inaktive Mods
@@ -26,4 +26,4 @@ label-see-full-details = Zeige Details
 label-mod-name = Mod-Name:
 
 label-license = Lizenz:
-base-conflict = Conflict detected # TODO @Nebual
+base-conflict = Conflict detected # TODO @profole 
