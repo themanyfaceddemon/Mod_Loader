@@ -36,7 +36,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.12'
-          architecture: ${{ matrix.arch }}
 
       - name: Install PyInstaller and dependencies
         run: |
