@@ -111,11 +111,15 @@ class ModManager:
                 logger.error(err)
                 return None
 
+        all_mods_ids = {mod.id for mod in ModManager.active_mods}
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_package, path) for path in package_paths]
             for future in as_completed(futures):
                 mod = future.result()
                 if mod is not None:
+                    if mod.id in all_mods_ids:
+                        continue
+
                     ModManager.inactive_mods.append(mod)
 
     @staticmethod
@@ -267,10 +271,9 @@ class ModManager:
 
     @staticmethod
     def process_errors():
-        all_mods = ModManager.active_mods + ModManager.inactive_mods
         active_mods_ids = {mod.id for mod in ModManager.active_mods}
 
-        for mod in all_mods:
+        for mod in ModManager.active_mods:
             mod.update_meta_errors()
             for dep in mod.metadata.dependencies:
                 if dep.type == "conflict":
