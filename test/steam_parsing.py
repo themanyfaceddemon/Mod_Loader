@@ -1,6 +1,4 @@
 import os
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
 
 import requests
 from bs4 import BeautifulSoup

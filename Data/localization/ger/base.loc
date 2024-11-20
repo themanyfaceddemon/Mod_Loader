@@ -6,3 +6,5 @@ base-yes = Ja
 base-start = Start
 base-close = Schliessen
 base-unknown = Unbekannt
+base-not-specified = Nicht angegeben
+base-conflict = Conflict detected # TODO @profole 

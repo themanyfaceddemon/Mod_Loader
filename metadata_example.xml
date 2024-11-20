@@ -1,87 +1,77 @@
-<!-- Example of metadata.exe for mods -->
+<!-- Example of metadata.xml for mods -->
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
+    <!--
+    The <settings> block is used to define general settings for the modification.
+    Each setting specifies a particular rule or behavior:
+        - IgnoreLUACheck: Whether to ignore the check for .lua files in the modification (true/false, default: false).
+        
+        - DisableCSDLLCheck: Whether to ignore the check for .dll and .cs files (true/false, default: false).
+        
+        - IgnoreOverrideCheck: Whether to ignore override checks, preventing the system from sorting the mod based on its overrides (true/false, default: false).
+    -->
     <settings>
-        <!-- If set to "true", the mod loader will ignore the presence of .lua files when sorting. Default - false -->
         <setting name="IgnoreLUACheck" value="false" />
-
-        <!-- Disables CSScript checks on the client. Default - false -->
         <setting name="DisableCSDLLCheck" value="false" />
+        <setting name="IgnoreOverrideCheck" value="false" />
     </settings>
 
+    <!--
+    The <meta> block contains additional metadata about the modification.
+    This is optional but recommended for better user visibility. 
+
+    Elements:
+        - <author>: Specifies the author's name (default: Not set).
+        
+        - <license>: Specifies the license type (default: Not set).
+        
+        - <warning>: Warnings displayed to the user regardless of conditions. Each line represents a new warning.
+        
+        - <error>: Errors displayed to the user regardless of conditions. Each line represents a new error.
+    -->
     <meta>
         <author>Author's Name</author>
-
-        <!-- Unique identifier for the mod; formatted as AuthorName.ModID -->
-        <!-- If not set, id will be collected from steamid and package name -->
-        <id>AuthorsName.SomeUniqueId</id>
-
-        <!-- License type, if applicable -->
         <license>License type here</license>
 
-        <!-- Warning message displayed in the program -->
-        <!-- <warning>Ensure compatible mods are installed.</warning> -->
+        <warning>
+            Ensure compatible mods are installed.
+        </warning>
 
-        <!-- Error message displayed in the program if mod loading fails -->
-        <!-- <error>Mod loading failed due to incompatibility.</error> -->
+        <error>
+            Mod loading failed due to incompatibility.
+        </error>
     </meta>
 
+    <!--
+    The <dependencies> block defines the relationships of this mod with other mods. 
+    It helps manage load order, required mods, and conflicts.
+
+    Available dependency types:
+        - <patch>: Specifies that this mod should be placed ABOVE the listed mod.
+            Attributes:
+                - name: The readable name of the dependency mod.
+                - steamID: The Steam ID of the dependency mod.
+                - condition: Condition under which this dependency is applied (e.g., ifhas('ModName or steamID')). Default: "None".
+
+        - <requirement>: Specifies that this mod should be placed BELOW the listed mod.
+            Attributes are the same as for <patch>.
+
+        - <requiredAnyOrder>: Specifies that the listed mod must be enabled for this mod to work.
+            Attributes:
+                - name: The readable name of the required mod.
+                - steamID: The Steam ID of the required mod.
+
+        - <conflict>: Specifies that this mod cannot be combined with the listed mod.
+            Attributes:
+                - name: The readable name of the conflicting mod.
+                - steamID: The Steam ID of the conflicting mod.
+                - message: A message displayed when the conflict is detected (default: "Conflict detected").
+                - level: The severity of the conflict. Values: "warning" or "error" (default: "error").
+    -->
     <dependencies>
-        <!--
-            Patch: Mods that must load AFTER your mod.
-            Your mod will override their content in case of conflict.
-
-            FIELDS:
-                name - Required (the name of the mod in filelist.xml)
-                steamID - Optional (the unique Steam identifier)
-                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
-        -->
-        <patch name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
-
-        <!--
-            Requirement: Mods that must load BEFORE your mod because they provide essential content required by your mod.
-
-            FIELDS:
-                name - Required (the name of the mod in filelist.xml)
-                steamID - Optional (the unique Steam identifier)
-                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
-        -->
-        <requirement name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
-
-        <!--
-            Optional Requirement: Mods that are compatible with your mod but not required.
-            These mods can enhance functionality if present, but are not mandatory.
-
-            FIELDS:
-                name - Required (the name of the mod in filelist.xml)
-                steamID - Optional (the unique Steam identifier)
-                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
-        -->
-        <optionalRequirement name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
-
-        <!--
-            Optional Patch: Similar to an optional requirement but will be overridden by your mod if present.
-            These mods can provide additional features without affecting the core functionality of your mod.
-
-            FIELDS:
-                name - Required (the name of the mod in filelist.xml)
-                steamID - Optional (the unique Steam identifier)
-                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
-        -->
-        <optionalPatch name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" />
-
-        <!--
-            Conflict: Mods that are incompatible with your mod.
-            If present, this will trigger a conflict warning or error for the user.
-            Optional message and level attributes allow specifying details for the conflict.
-
-            FIELDS:
-                name - Required (the name of the conflicting mod in filelist.xml)
-                steamID - Optional (the unique Steam identifier)
-                ID - Optional (unique identifier for the mod in format AuthorName.ModID)
-                message - Optional, default="Incompatible modifications"
-                level - Optional, either "warning" or "error", default="error"
-        -->
-        <conflict name="Some mod name in filelist.xml" steamID="123" ID="AuthorsName.SomeUniqueId" message="Conflict detected" level="warning" />
+        <patch name="Some mod name in filelist.xml" steamID="123" condition="None"/>
+        <requirement name="Some mod name in filelist.xml" steamID="123" condition="None" />
+        <requiredAnyOrder name="Some mod name in filelist.xml" steamID="123" />
+        <conflict name="Some mod name in filelist.xml" steamID="123" message="Conflict detected" level="error" />
     </dependencies>
 </metadata>

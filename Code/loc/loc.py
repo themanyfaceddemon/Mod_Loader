@@ -92,6 +92,15 @@ class Localization:
             return f"form5-{base_key}"
 
     @classmethod
+    def has_string(cls, key: str) -> bool:
+        text = cls._translations.get(key)
+        if text:
+            return True
+
+        else:
+            return False
+
+    @classmethod
     def get_string(cls, key: str, **kwargs) -> str:
         """Возвращает строку перевода с подстановкой форм слов или других строк.
 

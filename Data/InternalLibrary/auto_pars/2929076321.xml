@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <metadata>
-	<!--This file was automatically generated.-->
-	<meta>
-		<author>Evil Factory</author>
-		<id>EvilFactory.ItemCollision</id>
-		<warning>This dep was automatically generated!</warning>
-	</meta>
-	<dependencies>
-		<requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
-	</dependencies>
+    <!--This file was automatically generated.-->
+    <meta>
+        <author>Evil Factory</author>
+        <id>EvilFactory.ItemCollision</id>
+        <warning>This dep was automatically generated!</warning>
+    </meta>
 </metadata>

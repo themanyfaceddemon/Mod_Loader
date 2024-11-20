@@ -2,13 +2,13 @@ import sys
 
 import dearpygui.dearpygui as dpg
 
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 
 
 class FontManager:
     @staticmethod
     def load_fonts():
-        font_base_path = AppGlobalsAndConfig.get_data_root() / "fonts"
+        font_base_path = AppConfig.get_data_root() / "fonts"
 
         with dpg.font_registry():
             with dpg.font(

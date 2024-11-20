@@ -1,27 +1,51 @@
 import atexit
 import json
 import logging
+import platform
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 
-class AppGlobalsAndConfig:
+class AppConfig:
     user_config: Dict[str, Any] = {}
 
     _root: Path = Path(__file__).parents[1]
     _data_root: Path = _root / "Data"
-    _user_config_path: Path = _data_root / "user_config.json"
+    _user_data_path: Path = Path()
 
     @classmethod
-    def init(cls) -> None:
+    def init(cls, debug=False) -> None:
+        if platform.system() == "Windows":
+            cls._user_data_path = (
+                Path.home() / "AppData" / "Roaming" / "BarotraumaModdingTool"
+            )
+
+        elif platform.system() == "Linux":
+            cls._user_data_path = Path.home() / ".config" / "BarotraumaModdingTool"
+
+        elif platform.system() == "Darwin":
+            cls._user_data_path = (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "BarotraumaModdingTool"
+            )
+
+        else:
+            raise RuntimeError("Unknown operating system")
+
+        cls._user_data_path.mkdir(parents=True, exist_ok=True)
         cls._load_user_config()
+        cls.set("debug", debug)
         atexit.register(cls._save_user_config)
 
     @classmethod
     def _load_user_config(cls) -> None:
-        if cls._user_config_path.exists():
+        config_path = cls._user_data_path / "config.json"
+
+        if config_path.exists():
             try:
-                with open(cls._user_config_path, "r", encoding="utf-8") as file:
+                with open(config_path, "r", encoding="utf-8") as file:
                     cls.user_config = json.load(file)
 
             except json.JSONDecodeError as err:
@@ -29,7 +53,10 @@ class AppGlobalsAndConfig:
 
     @classmethod
     def _save_user_config(cls) -> None:
-        with open(cls._user_config_path, "w", encoding="utf-8") as file:
+        config_path = cls._user_data_path / "config.json"
+        cls.user_config.pop("debug")
+
+        with open(config_path, "w", encoding="utf-8") as file:
             json.dump(cls.user_config, file, indent=4, sort_keys=True)
 
     @classmethod
@@ -43,3 +70,20 @@ class AppGlobalsAndConfig:
     @classmethod
     def set(cls, key: str, value: Any) -> None:
         cls.user_config[key] = value
+
+    @classmethod
+    def get_game_path(cls) -> Optional[Path]:
+        game_path = cls.user_config["barotrauma_dir"]
+
+        if game_path is None:
+            logging.error("Game path not set!")
+            return
+
+        else:
+            game_path = Path(game_path)
+
+        if not game_path.exists():
+            logging.error(f"Game path dont exists!\n|Path: {game_path}")
+            return
+
+        return game_path

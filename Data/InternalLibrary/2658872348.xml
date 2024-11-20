@@ -4,8 +4,4 @@
         <author>Evil Factory</author>
         <id>EvilFactory.Disconnect_Kill_And_Stun_Remover</id>
     </meta>
-
-    <dependencies>
-        <requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
-    </dependencies>
 </metadata>

@@ -1,3 +1,5 @@
+mod-tab-label = Mod Manager
+
 label-active-mods = Active Mods
 label-inactive-mods = Inactive Mods
 
@@ -24,4 +26,5 @@ label-see-full-details = See full details
 label-mod-name = Modification name:
 
 label-license = License:
-not-specified = Not specified
+
+mod-unfind-mod = Requires mod {mod_name}|{mod_id}

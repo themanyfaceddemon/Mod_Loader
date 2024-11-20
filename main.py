@@ -1,13 +1,14 @@
 import argparse
 import logging
+import platform
 from pathlib import Path
 
 from colorama import Fore, Style, init
 
 from Code.app import App
-from Code.app_vars import AppGlobalsAndConfig
+from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.package import ModLoader
+from Code.package import ModManager
 
 
 class ColoredFormatter(logging.Formatter):
@@ -37,23 +38,39 @@ def configure_logging(debug: bool):
     logging.basicConfig(level=log_level, handlers=[console_handler], encoding="utf-8")
 
 
-def init_classes() -> None:
-    AppGlobalsAndConfig.init()
-    ModLoader.init()
+def init_app_config(debug: bool) -> None:
+    logging.debug("Initializing AppConfig...")
+    AppConfig.init(debug)
+    logging.debug("AppConfig initialization complete.")
 
 
-def main() -> None:
-    logging.debug("Starting initialization of classes...")
-    init_classes()
-    logging.debug("Initialization complete. Loading translations...")
+def load_mods() -> None:
+    logging.debug("Loading mods and game configs...")
+    ModManager.init()
+    logging.debug("Mods and game configs loaded successfully.")
 
+
+def load_translations() -> None:
+    logging.debug("Loading translations...")
     localization_path = (
-        Path(AppGlobalsAndConfig.get_data_root())
-        / "localization"
-        / AppGlobalsAndConfig.get("lang", "eng")  # type: ignore
+        Path(AppConfig.get_data_root()) / "localization" / AppConfig.get("lang", "eng")  # type: ignore
     )
     loc.load_translations(localization_path)
-    logging.debug("Translations loaded. Starting app...")
+    logging.debug("Translations loaded successfully.")
+
+
+def init_classes(debug: bool) -> None:
+    logging.debug("Starting application initialization...")
+    init_app_config(debug)
+    load_mods()
+    load_translations()
+    logging.debug("Application initialization complete.")
+
+
+def main(debug: bool) -> None:
+    logging.debug("Starting program...")
+    init_classes(debug)
+    logging.debug("Initialization complete. Program is ready to run.")
 
     app_instance = App()
     logging.debug("App instance created. Running app...")
@@ -70,5 +87,9 @@ if __name__ == "__main__":
 
     configure_logging(args.debug)
 
-    main()
-    logging.debug("I am dead")
+    if platform.system() == "Darwin":
+        logging.error(
+            "ModLoader does not currently support MacOS, may have bugs. Please report to https://github.com/themanyfaceddemon/Mod_Loader/issues any bugs"
+        )
+
+    main(args.debug)

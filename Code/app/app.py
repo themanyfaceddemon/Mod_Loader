@@ -1,4 +1,6 @@
+import gc
 import logging
+import threading
 
 import dearpygui.dearpygui as dpg
 
@@ -19,7 +21,13 @@ class App:
 
         finally:
             logging.debug("Destroying app...")
-            App.stop()  # DEBUG This line should help solve https://github.com/themanyfaceddemon/Mod_Loader/issues/13. While I'm watching. Cain
+            gc.collect()
+
+            for thread in threading.enumerate():
+                logging.debug(
+                    f"Thread Name: {thread.name}, Alive: {thread.is_alive()}, Daemon: {thread.daemon}"
+                )
+
             dpg.destroy_context()
 
     @staticmethod

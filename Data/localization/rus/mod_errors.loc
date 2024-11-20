@@ -1,0 +1,3 @@
+This dep was automatically generated! = Эта зависимость сгенерированна автоматически! Возможны ошибки при сортировке!
+This mod does nothing. This modification is only needed to tell that there is a mod loader. Thanks for downloading! = Этот мод ничего не делает. Эта модификация нужна только для того, чтобы сказать, что вы загрузили Barotrauma Modding Tool. Спасибо за загрузку!
+mod-override-id = Модификация '{mod_name}|{mod_id}' раньше перезаписала '{key_id}'

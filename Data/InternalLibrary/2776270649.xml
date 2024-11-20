@@ -7,7 +7,6 @@
     </meta>
 
     <dependencies>
-        <requirement name="Lua For Barotrauma" steamID="2559634234" ID="EvilFactory.LuaForBarotrauma" />
         <conflict name="Neurotrauma" steamID="3190189044" ID="guns.Neurotrauma" />
     </dependencies>
 </metadata>

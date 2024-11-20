@@ -1,4 +1,2 @@
-from .identifier import Identifier
-from .loader import ModLoader
-from .metadata import IdentifierConflict, MetaData
-from .package import Package
+from .dataclasses import Dependencie, Identifier, Metadata, ModUnit
+from .mod_manager import ModManager
