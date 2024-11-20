@@ -12,11 +12,8 @@ class ModWindow:
 
     @staticmethod
     def create_window():
-        with dpg.window(
-            no_move=True,
-            no_resize=True,
-            no_title_bar=True,
-            tag="mod_window",
+        with dpg.tab(
+            label=loc.get_string("mod-tab-label"), parent="main_tab_bar", tag="mod_tab"
         ):
             with dpg.group(horizontal=True):
                 dpg.add_button(

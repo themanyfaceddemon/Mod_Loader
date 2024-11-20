@@ -22,9 +22,20 @@ class AppInterface:
     @staticmethod
     def initialize():
         AppInterface._create_viewport_menu_bar()
+        AppInterface._create_main_window()
         ModWindow.create_window()
         dpg.set_viewport_resize_callback(AppInterface.resize_windows)
         AppInterface.resize_windows()
+
+    @staticmethod
+    def _create_main_window():
+        with dpg.window(
+            no_move=True,
+            no_resize=True,
+            no_title_bar=True,
+            tag="main_window",
+        ):
+            dpg.add_tab_bar(tag="main_tab_bar")
 
     @staticmethod
     def _create_viewport_menu_bar():
@@ -93,7 +104,7 @@ class AppInterface:
         viewport_height = dpg.get_viewport_height() - 80
 
         windows = [
-            "mod_window",
+            "main_window",
             "baro_window",
             "exp_game",
             "game_config_window",

@@ -14,8 +14,6 @@ class App:
     @staticmethod
     def run() -> None:
         try:
-            dpg.show_debug()
-            dpg.show_metrics()
             dpg.start_dearpygui()
 
         except Exception as e:
