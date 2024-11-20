@@ -1,4 +1,4 @@
-mod-tab-label = Mod Manager # TODO @profole 
+mod-tab-label = Mod Verwaltung
 
 label-active-mods = Aktive Mods
 label-inactive-mods = Inaktive Mods
@@ -14,7 +14,7 @@ label-lua-installed = Ist LUA installiert?
 label-mod-details-title = Details {mod_name}
 
 label-mod-version = Mod Version:
-label-game-version = Für Spiel Version:
+label-game-version = Für Spielversion:
 label-modloader-id = ModLoader ID:
 label-is-local-mod = Lokale Mod?
 
@@ -26,4 +26,4 @@ label-see-full-details = Zeige Details
 label-mod-name = Mod-Name:
 
 label-license = Lizenz:
-base-conflict = Conflict detected # TODO @profole 
+base-conflict = Konflikt gefunden 
