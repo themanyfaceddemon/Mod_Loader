@@ -22,7 +22,7 @@ class ModManager:
     @staticmethod
     def init():
         ModManager.load_mods()
-        ModManager.load_lua_config()
+        ModManager.load_cslua_config()
         atexit.register(ModManager.save_mods)
 
     @staticmethod
@@ -34,7 +34,10 @@ class ModManager:
         ModManager.active_mods.clear()
         ModManager.inactive_mods.clear()
         ModManager.load_active_mods(game_path / "config_player.xml")
-        ModManager.load_inactive_mods(AppConfig.get("barotrauma_install_mod_dir"))
+        inactive_mods_dir = AppConfig.get("barotrauma_install_mod_dir", None)
+        if inactive_mods_dir:
+            inactive_mods_dir = Path(inactive_mods_dir)
+            ModManager.load_inactive_mods(inactive_mods_dir)
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -64,7 +67,6 @@ class ModManager:
                 path = Path(path).parent
                 mod = ModUnit.build_by_path(path)
                 if mod is None:
-                    logger.error(f"Cannot build mod with path: {path}")
                     return None
 
                 mod.load_order = index
@@ -90,9 +92,9 @@ class ModManager:
             mod.load_order = index
 
     @staticmethod
-    def load_inactive_mods(path_to_all_mods: Optional[str]):
-        if path_to_all_mods is None:
-            logger.error("Barotrauma mod dir not set!")
+    def load_inactive_mods(path_to_all_mods: Path):
+        if not path_to_all_mods.exists():
+            logger.error("Barotrauma install mod dir not set!")
             return
 
         package_paths = [
@@ -103,8 +105,8 @@ class ModManager:
             try:
                 mod = ModUnit.build_by_path(path)
                 if mod is None:
-                    logger.error(f"Cannot build mod with path: {path}")
                     return None
+
                 return mod
 
             except Exception as err:
@@ -123,26 +125,12 @@ class ModManager:
                     ModManager.inactive_mods.append(mod)
 
     @staticmethod
-    def load_lua_config():
+    def load_cslua_config():
         game_path = AppConfig.get_game_path()
         if not game_path:
             return
 
-        config_path = game_path / "LuaCsSetupConfig.xml"
-        if config_path.exists():
-            xml_obj = XMLObject.load_file(config_path).root
-            has_cs = (
-                xml_obj.attributes.get("enablecsscripting", "false").lower() == "true"
-                if xml_obj
-                else False
-            )
-            AppConfig.set("has_cs", has_cs)
-            logger.debug(f"CS scripting enabled: {has_cs}")
-
-        else:
-            AppConfig.set("has_cs", False)
-            logger.debug("LuaCsSetupConfig.xml not found, disabling CS scripting.")
-
+        # LUA
         lua_dep_path = game_path / "Barotrauma.deps.json"
         if lua_dep_path.exists():
             with open(lua_dep_path, "r", encoding="utf-8") as file:
@@ -153,6 +141,22 @@ class ModManager:
         else:
             AppConfig.set("has_lua", False)
             logger.debug("Barotrauma.deps.json not found, disabling Lua support.")
+
+        # CS
+        config_path = game_path / "LuaCsSetupConfig.xml"
+        if config_path.exists():
+            xml_obj = XMLObject.load_file(config_path).root
+            has_cs = (
+                xml_obj.attributes.get("EnableCsScripting", "false").lower() == "true"
+                if xml_obj
+                else False
+            )
+            AppConfig.set("has_cs", has_cs)
+            logger.debug(f"CS scripting enabled: {has_cs}")
+
+        else:
+            AppConfig.set("has_cs", False)
+            logger.debug("LuaCsSetupConfig.xml not found, disabling CS scripting.")
 
     @staticmethod
     def find_mod_by_id(mod_id: str) -> Optional[ModUnit]:
