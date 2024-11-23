@@ -264,6 +264,24 @@ class AppInterface:
             logger.error(f"{contributors_path} just fuck up: {e}")
             return
 
+        category_config = {
+            "сaс-devs": {
+                "name_field": "name",
+                "info_field": "role",
+                "info_process": lambda val: loc.get_string(val),
+            },
+            "сaс-translators": {
+                "name_field": "name",
+                "info_field": "code",
+                "info_process": lambda val: loc.get_string("cac-translators-thx", lang_code=loc.get_string(f"lang_code-{val}")),
+            },
+            "cac-special-thanks": {
+                "name_field": "to",
+                "info_field": "desc",
+                "info_process": lambda val: loc.get_string(val),
+            },
+        }
+
         with dpg.window(
             label=loc.get_string("cac-window-name"),
             tag="cac_window",
@@ -278,44 +296,19 @@ class AppInterface:
                     if isinstance(contributors_list, list):
                         for contributor in contributors_list:
                             with dpg.group(horizontal=True):
-                                if category_label == "сaс-devs":
+                                config = category_config.get(category_label)
+                                if config:
                                     name = contributor.get(
-                                        "name", loc.get_string("base-unknown")
+                                        config["name_field"], loc.get_string("base-unknown")
                                     )
-                                    role = loc.get_string(contributor.get("role", ""))
-                                    dpg.add_text(name, color=(0, 150, 255))
-                                    if role:
-                                        dpg.add_text(
-                                            f"- {role}", color=(200, 200, 200), wrap=0
-                                        )
-
-                                elif category_label == "сaс-translators":
-                                    name = contributor.get(
-                                        "name", loc.get_string("base-unknown")
-                                    )
-                                    code = loc.get_string(
-                                        "cac-translators-thx",
-                                        lang_code=loc.get_string(
-                                            f"lang_code-{contributor.get("code", "")}"
-                                        ),
+                                    info_val = contributor.get(config["info_field"], "")
+                                    info_text = (
+                                        config["info_process"](info_val) if info_val else ""
                                     )
                                     dpg.add_text(name, color=(0, 150, 255))
-                                    if code:
+                                    if info_text:
                                         dpg.add_text(
-                                            f"- {code}", color=(200, 200, 200), wrap=0
-                                        )
-
-                                elif category_label == "cac-special-thanks":
-                                    to = contributor.get(
-                                        "to", loc.get_string("base-unknown")
-                                    )
-                                    desc = loc.get_string(
-                                        contributor.get("desc", "base-empty")
-                                    )
-                                    dpg.add_text(to, color=(0, 150, 255))
-                                    if desc:
-                                        dpg.add_text(
-                                            f"- {desc}", color=(200, 200, 200), wrap=0
+                                            f"- {info_text}", color=(200, 200, 200), wrap=0
                                         )
 
             AppInterface.resize_windows()

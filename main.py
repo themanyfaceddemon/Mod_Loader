@@ -1,7 +1,10 @@
 import argparse
 import logging
 import platform
+import sys
 from pathlib import Path
+from tkinter import Tk, messagebox
+from traceback import TracebackException
 
 from colorama import Fore, Style, init
 
@@ -9,6 +12,13 @@ from Code.app import App
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
 from Code.package import ModManager
+
+
+def show_error_message(title, message):
+    root = Tk()
+    root.withdraw()
+    messagebox.showerror(title, message)
+    root.destroy()
 
 
 class ColoredFormatter(logging.Formatter):
@@ -79,17 +89,25 @@ def main(debug: bool) -> None:
 
 
 if __name__ == "__main__":
-    init(autoreset=True)
+    try:
+        init(autoreset=True)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    args = parser.parse_args()
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+        args = parser.parse_args()
 
-    configure_logging(args.debug)
+        configure_logging(args.debug)
 
-    if platform.system() == "Darwin":
-        logging.error(
-            "ModLoader does not currently support MacOS, may have bugs. Please report to https://github.com/themanyfaceddemon/Mod_Loader/issues any bugs"
-        )
+        if platform.system() == "Darwin":
+            logging.warning(
+                "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
+            )
 
-    main(args.debug)
+        main(args.debug)
+
+    except Exception:
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        traceback_exception = TracebackException(exc_type, exc_value, exc_tb)  # type: ignore
+        error_message = "".join(traceback_exception.format())
+        show_error_message("Error Message", error_message)
+        input("Press Enter to exit...")

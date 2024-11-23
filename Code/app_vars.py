@@ -73,7 +73,7 @@ class AppConfig:
 
     @classmethod
     def get_game_path(cls) -> Optional[Path]:
-        game_path = cls.user_config["barotrauma_dir"]
+        game_path = cls.user_config.get("barotrauma_dir")
 
         if game_path is None:
             logging.error("Game path not set!")

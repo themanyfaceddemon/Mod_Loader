@@ -96,9 +96,7 @@ class Localization:
         text = cls._translations.get(key)
         if text:
             return True
-
-        else:
-            return False
+        return False
 
     @classmethod
     def get_string(cls, key: str, **kwargs) -> str:
