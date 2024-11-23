@@ -1,5 +1,6 @@
 import logging
 import os
+import platform
 import string
 import threading
 from pathlib import Path
@@ -87,10 +88,49 @@ class BarotraumaWindow:
                 dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
 
                 AppConfig.set("barotrauma_dir", str(path))
+                if "Steam" in path.parts:  # Sorry pirates, but not today
+                    if platform.system() == "Windows":
+                        path_to_mod = (
+                            Path.home()
+                            / "AppData"
+                            / "Local"
+                            / "Daedalic Entertainment GmbH"
+                            / "Barotrauma"
+                            / "WorkshopMods"
+                            / "Installed"
+                        )
+
+                    elif platform.system() == "Linux":
+                        path_to_mod = (
+                            Path.home()
+                            / ".local"
+                            / "share"
+                            / "Daedalic Entertainment GmbH"
+                            / "Barotrauma"
+                            / "WorkshopMods"
+                            / "Installed"
+                        )
+
+                    elif platform.system() == "Darwin":
+                        path_to_mod = (
+                            Path.home()
+                            / "Library"
+                            / "Application Support"
+                            / "Daedalic Entertainment GmbH"
+                            / "Barotrauma"
+                            / "WorkshopMods"
+                            / "Installed"
+                        )
+
+                    else:
+                        raise RuntimeError("Unknown operating system")
+
+                    AppConfig.set("barotrauma_install_mod_dir", str(path_to_mod))
 
                 logger.info(f"Valid path set: {path}")
 
                 ModManager.load_mods()
+                ModManager.load_cslua_config()
                 ModWindow.render_mods()
                 return
             else:
@@ -293,11 +333,19 @@ class BarotraumaWindow:
     def _search_all_games_on_all_drives():
         game_name = "barotrauma"
 
-        drives = [Path(drive) for drive in Path("/").glob("*") if drive.is_dir()] or [
-            Path(f"{drive}:\\")
-            for drive in string.ascii_uppercase
-            if Path(f"{drive}:\\").exists()
-        ]
+        if os.name == "nt":
+            drives = [
+                Path(f"{drive}:\\")
+                for drive in string.ascii_uppercase
+                if Path(f"{drive}:\\").exists() and os.access(f"{drive}:\\", os.R_OK)
+            ]
+
+        else:
+            drives = [
+                Path(mount_point)
+                for mount_point in Path("/mnt").glob("*")
+                if mount_point.is_dir()
+            ]
 
         logger.debug(f"Found drives: {len(drives)}")
 

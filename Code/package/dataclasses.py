@@ -118,6 +118,7 @@ class Metadata:
 @dataclass
 class ModUnit(Identifier):
     local: bool
+    corepackage: bool
     load_order: Optional[int]
     path: Path
 
@@ -136,6 +137,7 @@ class ModUnit(Identifier):
         return ModUnit(
             "base-not-set",
             None,
+            False,
             False,
             None,
             Path(),
@@ -186,6 +188,11 @@ class ModUnit(Identifier):
             path = Path(new_path / path)
 
         ModUnit.parse_filelist(obj, path)
+        if obj.corepackage:
+            logging.warning(
+                f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
+            )
+            return None
 
         obj.path = path
         obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
@@ -220,6 +227,10 @@ class ModUnit(Identifier):
 
         xml_obj = xml_obj.root
         obj.name = xml_obj.attributes.get("name", "Something went rong")
+        obj.corepackage = (
+            xml_obj.attributes.get("corepackage", "false").lower() == "true"
+        )
+
         obj.steam_id = xml_obj.attributes.get("steamworkshopid")
         obj.metadata.game_version = xml_obj.attributes.get(
             "gameversion", "base-not-specified"
