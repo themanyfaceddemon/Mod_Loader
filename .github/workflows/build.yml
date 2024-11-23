@@ -27,13 +27,12 @@ jobs:
             arch: arm64
             build-name: windows-arm64
 
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
@@ -41,14 +40,48 @@ jobs:
         run: |
           pip install pyinstaller
           pip install -r requirements.txt
-
+  
       - name: Build with PyInstaller
         run: |
           pyinstaller main.py --add-data=Data:Data
         working-directory: ./
 
-      - name: Upload artifact
+      - name: Create ZIP archive (Linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          zip -r ${{ matrix.build-name }}.zip dist/main/*
+
+      - name: Create ZIP archive (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          powershell -Command "Compress-Archive -Path dist/main/* -DestinationPath ${{ matrix.build-name }}.zip"
+
+      - name: Upload ZIP artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/main/*
+          name: ${{ matrix.build-name }}
+          path: ${{ matrix.build-name }}.zip
+
+  combine:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all ZIP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: allzips
+
+      - name: Flatten artifact structure
+        run: |
+          find allzips -name "*.zip" -exec mv {} ./ \;
+          rm -rf allzips
+
+      - name: Create combined ZIP archive
+        run: |
+          zip -r all-builds.zip *.zip
+
+      - name: Upload combined ZIP archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-builds
+          path: all-builds.zip
