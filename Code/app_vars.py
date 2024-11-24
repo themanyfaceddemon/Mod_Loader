@@ -87,3 +87,40 @@ class AppConfig:
             return
 
         return game_path
+
+    @classmethod
+    def get_mods_path(cls) -> None:
+        if platform.system() == "Windows":
+            path_to_mod = (
+                    Path.home()
+                    / "AppData"
+                    / "Local"
+                    / "Daedalic Entertainment GmbH"
+                    / "Barotrauma"
+                    / "WorkshopMods"
+                    / "Installed"
+            )
+        elif platform.system() == "Linux":
+            path_to_mod = (
+                    Path.home()
+                    / ".local"
+                    / "share"
+                    / "Daedalic Entertainment GmbH"
+                    / "Barotrauma"
+                    / "WorkshopMods"
+                    / "Installed"
+            )
+        elif platform.system() == "Darwin":
+            path_to_mod = (
+                    Path.home()
+                    / "Library"
+                    / "Application Support"
+                    / "Daedalic Entertainment GmbH"
+                    / "Barotrauma"
+                    / "WorkshopMods"
+                    / "Installed"
+            )
+        else:
+            raise RuntimeError("Unknown operating system")
+
+        AppConfig.set("barotrauma_install_mod_dir", str(path_to_mod))
