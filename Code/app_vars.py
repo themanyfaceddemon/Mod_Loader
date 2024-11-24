@@ -37,6 +37,7 @@ class AppConfig:
         cls._user_data_path.mkdir(parents=True, exist_ok=True)
         cls._load_user_config()
         cls.set("debug", debug)
+        cls.get_mods_path()
         atexit.register(cls._save_user_config)
 
     @classmethod
