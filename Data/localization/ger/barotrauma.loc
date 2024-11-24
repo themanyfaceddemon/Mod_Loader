@@ -1,13 +1,13 @@
-label-barotrauma-path-settings = Installationsverzeichnis Einstellungen
+label-barotrauma-path-settings = Installationsverzeichnis-Einstellungen
 
 hint-enter-barotrauma-path = Installationsverzeichnis eingeben
 
 label-current-path = Momentanes Verzeichnis:
 label-not-defined = Nicht festgelegt
-label-valid-path = Ist das Verzeichnis gueltig?
+label-valid-path = Ist das Verzeichnis gültig?
 
 warning-exp-game-1 = Warnung: Diese Funktion ist experimentell und funktioniert eventuell nicht einwandfrei.
-warning-exp-game-2 = Die Suche wird nach Bestätigung gestartet
+warning-exp-game-2 = Die Suche wird nach Bestätigung gestartet.
 
 search-exp-game = Suche...
 search-exp-game-done = Wähle das Verzeichnis deiner Barotrauma-Installation:
