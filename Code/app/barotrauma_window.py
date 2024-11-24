@@ -257,13 +257,14 @@ class BarotraumaWindow:
 
     @staticmethod
     def _is_system_directory(path):
-        if os.name == "nt":
+        if platform.system() == "Windows":
             system_dirs = [
                 Path("C:\\Windows"),
                 Path("C:\\Program Files"),
                 Path("C:\\Program Files (x86)"),
             ]
             return path in system_dirs or path.is_relative_to(Path("C:\\Windows"))
+
         else:
             system_dirs = [
                 Path("/usr"),
@@ -333,7 +334,7 @@ class BarotraumaWindow:
     def _search_all_games_on_all_drives():
         game_name = "barotrauma"
 
-        if os.name == "nt":
+        if platform.system() == "Windows":
             drives = [
                 Path(f"{drive}:\\")
                 for drive in string.ascii_uppercase
@@ -383,7 +384,9 @@ class BarotraumaWindow:
                 except Exception as e:
                     logger.debug(f"Error processing directory {current_dir}: {e}")
 
-        executable_name = "barotrauma.exe" if os.name == "nt" else "barotrauma"
+        executable_name = (
+            "barotrauma.exe" if platform.system() == "Windows" else "barotrauma"
+        )
 
         valid_paths = []
         for path in found_paths:
