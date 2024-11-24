@@ -88,45 +88,6 @@ class BarotraumaWindow:
                 dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
 
                 AppConfig.set("barotrauma_dir", str(path))
-                if "Steam" in path.parts:  # Sorry pirates, but not today
-                    if platform.system() == "Windows":
-                        path_to_mod = (
-                            Path.home()
-                            / "AppData"
-                            / "Local"
-                            / "Daedalic Entertainment GmbH"
-                            / "Barotrauma"
-                            / "WorkshopMods"
-                            / "Installed"
-                        )
-
-                    elif platform.system() == "Linux":
-                        path_to_mod = (
-                            Path.home()
-                            / ".local"
-                            / "share"
-                            / "Daedalic Entertainment GmbH"
-                            / "Barotrauma"
-                            / "WorkshopMods"
-                            / "Installed"
-                        )
-
-                    elif platform.system() == "Darwin":
-                        path_to_mod = (
-                            Path.home()
-                            / "Library"
-                            / "Application Support"
-                            / "Daedalic Entertainment GmbH"
-                            / "Barotrauma"
-                            / "WorkshopMods"
-                            / "Installed"
-                        )
-
-                    else:
-                        raise RuntimeError("Unknown operating system")
-
-                    AppConfig.set("barotrauma_install_mod_dir", str(path_to_mod))
-
                 logger.info(f"Valid path set: {path}")
 
                 ModManager.load_mods()
