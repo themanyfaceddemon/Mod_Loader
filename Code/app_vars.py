@@ -91,11 +91,6 @@ class AppConfig:
 
     @classmethod
     def get_mods_path(cls) -> None:
-        path = Path.home()
-
-        if not path.exists():
-            return
-
         if platform.system() == "Windows":
             path_to_mod = (
                     Path.home()
@@ -106,7 +101,6 @@ class AppConfig:
                     / "WorkshopMods"
                     / "Installed"
             )
-
         elif platform.system() == "Linux":
             path_to_mod = (
                     Path.home()
@@ -117,7 +111,6 @@ class AppConfig:
                     / "WorkshopMods"
                     / "Installed"
             )
-
         elif platform.system() == "Darwin":
             path_to_mod = (
                     Path.home()
@@ -128,7 +121,6 @@ class AppConfig:
                     / "WorkshopMods"
                     / "Installed"
             )
-
         else:
             raise RuntimeError("Unknown operating system")
 
