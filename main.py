@@ -51,6 +51,7 @@ def configure_logging(debug: bool):
 def init_app_config(debug: bool) -> None:
     logging.debug("Initializing AppConfig...")
     AppConfig.init(debug)
+    AppConfig.get_mods_path()
     logging.debug("AppConfig initialization complete.")
 
 
