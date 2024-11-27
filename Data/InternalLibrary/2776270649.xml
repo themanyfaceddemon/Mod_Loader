@@ -7,6 +7,6 @@
     </meta>
 
     <dependencies>
-        <conflict name="Neurotrauma" steamID="3190189044" ID="guns.Neurotrauma" />
+        <conflict name="Neurotrauma" steamID="3190189044" />
     </dependencies>
 </metadata>

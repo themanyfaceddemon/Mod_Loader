@@ -6,7 +6,7 @@
     </meta>
 
     <dependencies>
-        <requirement name="Neurotrauma" steamID="3190189044" ID="guns.Neurotrauma" />
-        <conflict name="NT Cybernetics" steamID="2788543375" ID="Mannatu.NT_Cybernetics" />
+        <requirement name="Neurotrauma" steamID="3190189044" />
+        <conflict name="NT Cybernetics" steamID="2788543375" />
     </dependencies>
 </metadata>
