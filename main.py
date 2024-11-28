@@ -147,7 +147,7 @@ if __name__ == "__main__":
                 "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
             )
 
-        if args.ngui is None:
+        if not args.ngui:
             main(args.debug)
 
         else:
