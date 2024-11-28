@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from Code.app_vars import AppConfig
-from Code.xml_object import XMLObject
+from Code.xml_object import XMLBuilder
 
 from .id_parser import extract_ids
 
@@ -221,11 +221,10 @@ class ModUnit(Identifier):
         if not file_list_path.exists():
             raise ValueError(f"{file_list_path} don't exsist")
 
-        xml_obj = XMLObject.load_file(file_list_path)
-        if not xml_obj.root:
+        xml_obj = XMLBuilder.build_form_file(file_list_path)
+        if xml_obj is None:
             raise ValueError(f"{file_list_path} invalid xml struct")
 
-        xml_obj = xml_obj.root
         obj.name = xml_obj.attributes.get("name", "Something went rong")
         obj.corepackage = (
             xml_obj.attributes.get("corepackage", "false").lower() == "true"
@@ -253,12 +252,10 @@ class ModUnit(Identifier):
                 continue
 
             try:
-                xml_obj = XMLObject.load_file(xml_file_path)
-                if not xml_obj.root:
+                xml_obj = XMLBuilder.build_form_file(xml_file_path)
+                if xml_obj is None:
                     logger.warning(f"File {xml_file_path} is empty")
                     continue
-
-                xml_obj = xml_obj.root
 
                 id_parser_unit = extract_ids(xml_obj)
                 obj.add_id.update(id_parser_unit.add_id)
@@ -283,11 +280,9 @@ class ModUnit(Identifier):
             else:
                 return
 
-        xml_obj = XMLObject.load_file(metadata_path)
-        if not xml_obj.root:
+        xml_obj = XMLBuilder.build_form_file(metadata_path)
+        if xml_obj is None:
             raise ValueError(f"Empty metadata.xml for {obj.id}!")
-
-        xml_obj = xml_obj.root
 
         for element in xml_obj.iter_non_comment_childrens():
             element_name_lower = element.name.lower()
@@ -365,11 +360,9 @@ class ModUnit(Identifier):
             else:
                 return
 
-        xml_obj = XMLObject.load_file(metadata_path)
-        if not xml_obj.root:
+        xml_obj = XMLBuilder.build_form_file(metadata_path)
+        if xml_obj is None:
             raise ValueError(f"Empty metadata.xml for {self.id}!")
-
-        xml_obj = xml_obj.root
 
         for element in xml_obj.find_only_elements("meta"):
             for ch in element.iter_non_comment_childrens():

@@ -102,7 +102,7 @@ class BarotraumaWindow:
             logger.error(f"Path validation error: {e}", exc_info=True)
 
         finally:
-            if not path:
+            if path is None:
                 path = AppConfig.get("barotrauma_dir", loc.get_string("base-not-set"))
 
             has_cs = AppConfig.get("has_cs")
