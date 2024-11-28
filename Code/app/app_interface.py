@@ -1,14 +1,11 @@
 import json
 import logging
-import os
-import platform
-import subprocess
 
 import dearpygui.dearpygui as dpg
-import requests
 
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppConfig
+from Code.game import Game
 from Code.loc import Localization as loc
 from Code.package import ModManager
 
@@ -138,115 +135,16 @@ class AppInterface:
 
         skip_intro = AppConfig.get("game_config_skip_intro", False)
         auto_install_lua = AppConfig.get("game_config_auto_lua", False)
+        try:
+            Game.run_game(auto_install_lua, skip_intro)  # type: ignore
 
-        if auto_install_lua:
-            if AppInterface.download_and_run_updater(game_dir):
-                AppInterface.run_game(skip_intro, game_dir)
-            else:
-                AppInterface.show_error("Failed to download or run the updater.")
-        else:
-            AppInterface.run_game(skip_intro, game_dir)
+        except Exception as err:
+            AppInterface.show_error(err)
 
     @staticmethod
     def show_error(message):
         with dpg.window(label="Error"):
             dpg.add_text(message)
-
-    @staticmethod
-    def download_and_run_updater(game_dir):
-        system = platform.system()
-        urls = {
-            "Windows": "https://github.com/Luatrauma/Luatrauma.AutoUpdater/releases/download/latest/Luatrauma.AutoUpdater.win-x64.exe",
-            "Darwin": "https://github.com/Luatrauma/Luatrauma.AutoUpdater/releases/download/latest/Luatrauma.AutoUpdater.osx-x64",
-            "Linux": "https://github.com/Luatrauma/Luatrauma.AutoUpdater/releases/download/latest/Luatrauma.AutoUpdater.linux-x64",
-        }
-
-        file_name = {
-            "Windows": "Luatrauma.AutoUpdater.win-x64.exe",
-            "Darwin": "Luatrauma.AutoUpdater.osx-x64",
-            "Linux": "Luatrauma.AutoUpdater.linux-x64",
-        }
-
-        if system not in urls:
-            logger.error(f"Unsupported OS: {system}")
-            AppInterface.show_error(loc.get_string("error-unknown-os"))
-            return False
-
-        updater_path = os.path.join(game_dir, file_name[system])
-        logger.debug(f"Updater path set to: {updater_path}")
-
-        try:
-            logger.debug(f"Attempting to download updater from {urls[system]}")
-            response = requests.get(urls[system], stream=True)
-            response.raise_for_status()
-
-            total_size = int(response.headers.get("Content-Length", 0))
-            logger.debug(f"Total file size: {total_size} bytes")
-
-            downloaded_size = 0
-            chunk_size = 4092
-            with open(updater_path, "wb") as file:
-                logger.debug("Writing updater file in chunks...")
-                for i, chunk in enumerate(response.iter_content(chunk_size=chunk_size)):
-                    file.write(chunk)
-                    downloaded_size += len(chunk)
-                    logger.debug(
-                        f"Saved chunk #{i + 1} - {downloaded_size}/{total_size} bytes downloaded ({downloaded_size / total_size * 100:.2f}%)"
-                    )  # TODO: Loading bar
-
-            logger.debug(f"Download completed and saved to {updater_path}")
-
-            if system in ["Darwin", "Linux"]:
-                logger.debug(f"Setting execute permissions for {updater_path}")
-                subprocess.run(["chmod", "+x", updater_path], check=True)
-                logger.debug("Execute permissions set.")
-
-            logger.debug(f"Running updater from {updater_path}")
-            result = subprocess.run([updater_path], cwd=game_dir)
-            logger.debug(
-                f"Updater process completed with return code: {result.returncode}"
-            )
-
-            return result.returncode == 0
-
-        except requests.RequestException as e:
-            logger.error(f"Network error while downloading updater: {e}")
-            return False
-
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Error setting execute permissions: {e}")
-            return False
-
-        except Exception as e:
-            logger.error(f"Unexpected error during download or execution: {e}")
-            return False
-
-    @staticmethod
-    def run_game(skip_intro, game_dir):
-        run_executable = {
-            "Windows": "Barotrauma.exe",
-            "Darwin": "Barotrauma.app/Contents/MacOS/Barotrauma",
-            "Linux": "Barotrauma",
-        }
-
-        system = platform.system()
-        if system not in run_executable:
-            AppInterface.show_error(loc.get_string("error-unknown-os"))
-            return
-
-        executable_path = os.path.join(game_dir, run_executable[system])
-        if not os.path.isfile(executable_path):
-            AppInterface.show_error(f"Executable not found: {executable_path}")
-            return
-
-        parms = ["-skipintro"] if skip_intro else []
-
-        try:
-            subprocess.run([executable_path] + parms, cwd=game_dir)
-
-        except Exception as e:
-            logging.error(f"Error running the game: {e}")
-            AppInterface.show_error(f"Error running the game: {e}")
 
     @staticmethod
     def create_cac_window():
@@ -273,7 +171,9 @@ class AppInterface:
             "сaс-translators": {
                 "name_field": "name",
                 "info_field": "code",
-                "info_process": lambda val: loc.get_string("cac-translators-thx", lang_code=loc.get_string(f"lang_code-{val}")),
+                "info_process": lambda val: loc.get_string(
+                    "cac-translators-thx", lang_code=loc.get_string(f"lang_code-{val}")
+                ),
             },
             "cac-special-thanks": {
                 "name_field": "to",
@@ -299,16 +199,21 @@ class AppInterface:
                                 config = category_config.get(category_label)
                                 if config:
                                     name = contributor.get(
-                                        config["name_field"], loc.get_string("base-unknown")
+                                        config["name_field"],
+                                        loc.get_string("base-unknown"),
                                     )
                                     info_val = contributor.get(config["info_field"], "")
                                     info_text = (
-                                        config["info_process"](info_val) if info_val else ""
+                                        config["info_process"](info_val)
+                                        if info_val
+                                        else ""
                                     )
                                     dpg.add_text(name, color=(0, 150, 255))
                                     if info_text:
                                         dpg.add_text(
-                                            f"- {info_text}", color=(200, 200, 200), wrap=0
+                                            f"- {info_text}",
+                                            color=(200, 200, 200),
+                                            wrap=0,
                                         )
 
             AppInterface.resize_windows()
