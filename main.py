@@ -147,11 +147,11 @@ if __name__ == "__main__":
                 "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
             )
 
-        if not args.ngui:
-            main(args.debug)
+        if args.ngui:
+            args_no_gui(args.sg, args.apath, args.alua, args.si)
 
         else:
-            args_no_gui(args.sg, args.apath, args.alua, args.si)
+            main(args.debug)
 
     except Exception:
         exc_type, exc_value, exc_tb = sys.exc_info()
