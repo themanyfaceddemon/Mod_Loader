@@ -4,6 +4,7 @@ import subprocess
 from typing import List
 
 import requests
+
 from Code.app_vars import AppConfig
 
 logger = logging.getLogger("GameProcessor")
