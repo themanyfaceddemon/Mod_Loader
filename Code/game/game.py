@@ -1,6 +1,9 @@
 import logging
+import os
 import platform
+import string
 import subprocess
+from pathlib import Path
 from typing import List
 
 import requests
@@ -35,13 +38,13 @@ class Game:
     @staticmethod
     def run_game(install_lua: bool = False, skip_intro: bool = False):
         if install_lua:
-            Game._download_update_lua()
+            Game.download_update_lua()
 
         parms = ["-skipintro"] if skip_intro else []
-        Game._run_exec(parms)
+        Game.run_exec(parms)
 
     @staticmethod
-    def _download_update_lua():
+    def download_update_lua():
         lua = Game._LUA.get(platform.system(), None)
         if not lua:
             raise RuntimeError("Unknown operating system")
@@ -86,7 +89,7 @@ class Game:
             return False
 
     @staticmethod
-    def _run_exec(parms: List[str] = []):
+    def run_exec(parms: List[str] = []):
         try:
             exec_file = Game._EXECUTABLES.get(platform.system())
             if exec_file is None:
@@ -105,3 +108,145 @@ class Game:
 
         except Exception as e:
             logger.error(f"Error running the game: {e}")
+
+    @staticmethod
+    def search_all_games_on_all_drives() -> List[Path]:
+        game_name = "barotrauma"
+
+        if platform.system() == "Windows":
+            drives = [
+                Path(f"{drive}:\\")
+                for drive in string.ascii_uppercase
+                if Path(f"{drive}:\\").exists() and os.access(f"{drive}:\\", os.R_OK)
+            ]
+
+        else:
+            drives = [
+                Path(mount_point)
+                for mount_point in Path("/mnt").glob("*")
+                if mount_point.is_dir()
+            ]
+
+        logger.debug(f"Found drives: {len(drives)}")
+
+        found_paths: List[Path] = []
+
+        for drive in drives:
+            logger.debug(f"Processing drive: {drive}")
+            dirs_to_visit = [drive]
+
+            while dirs_to_visit:
+                current_dir = dirs_to_visit.pop()
+                logger.debug(f"Processing directory: {current_dir}")
+
+                if Game._is_system_directory(current_dir):
+                    logger.debug(f"Ignoring system folder: {current_dir}")
+                    continue
+
+                try:
+                    for entry in current_dir.iterdir():
+                        if entry.is_dir():
+                            if Game._should_ignore_directory(
+                                entry, current_dir, game_name
+                            ):
+                                continue
+
+                            if entry.name.lower() == game_name:
+                                logger.debug(f"Match found: {entry}")
+                                found_paths.append(entry)
+                            else:
+                                dirs_to_visit.append(entry)
+
+                except PermissionError:
+                    logger.debug(f"Access to directory {current_dir} denied")
+
+                except Exception as e:
+                    logger.debug(f"Error processing directory {current_dir}: {e}")
+
+        executable_name = (
+            "barotrauma.exe" if platform.system() == "Windows" else "barotrauma"
+        )
+
+        valid_paths: List[Path] = []
+        for path in found_paths:
+            for exec_file in path.rglob("[Bb]arotrauma*"):
+                if exec_file.name.lower() == executable_name:
+                    logger.debug(f"Verified executable in path: {exec_file}")
+                    valid_paths.append(path)
+
+        return valid_paths
+
+    @staticmethod
+    def _is_system_directory(path):
+        if platform.system() == "Windows":
+            system_dirs = [
+                Path("C:\\Windows"),
+                Path("C:\\Program Files"),
+                Path("C:\\Program Files (x86)"),
+            ]
+            return path in system_dirs or path.is_relative_to(Path("C:\\Windows"))
+
+        else:
+            system_dirs = [
+                Path("/usr"),
+                Path("/etc"),
+                Path("/bin"),
+                Path("/sys"),
+                Path("/sbin"),
+                Path("/proc"),
+                Path("/dev"),
+                Path("/run"),
+                Path("/tmp"),
+                Path("/var"),
+                Path("/boot"),
+                Path("/lib"),
+                Path("/lib64"),
+                Path("/opt"),
+                Path("/lost+found"),
+                Path("/snap"),
+                Path("/srv"),
+            ]
+
+            return path in system_dirs
+
+    @staticmethod
+    def _should_ignore_directory(entry, current_dir, game_name):
+        ignored_directories = {
+            "appdata",
+            "temp",
+            "cache",
+            "logs",
+            "backup",
+            "bin",
+            "obj",
+            "history",
+            "httpcache",
+            "venv",
+            "tmp",
+            "programdata",
+        }
+
+        entry_name_lower = entry.name.lower()
+
+        if entry_name_lower != ".steam" and (
+            entry_name_lower.startswith((".", "_", "$", "~"))
+            or entry_name_lower in ignored_directories
+        ):
+            logger.debug(f"Ignoring directory: {entry}")
+            return True
+
+        expected_structure = {
+            ".steam": "steam",
+            "steam": "steamapps",
+            "steamapps": "common",
+            "common": game_name.lower(),
+        }
+
+        expected_entry = expected_structure.get(current_dir.name.lower())
+        if expected_entry and entry_name_lower != expected_entry:
+            logger.debug(
+                f"Ignoring directory: {entry} (in {current_dir.name}, not {expected_entry})"
+            )
+            return True
+
+        return False
