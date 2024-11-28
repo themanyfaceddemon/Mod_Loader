@@ -1,3 +1,4 @@
+"""
 import os
 
 import requests
@@ -173,3 +174,4 @@ for i in range(1, 50):
         f"https://steamcommunity.com/workshop/browse/?appid=602960&browsesort=trend&section=readytouseitems&excludedtags%5B0%5D=Submarine&created_date_range_filter_start=0&created_date_range_filter_end=0&updated_date_range_filter_start=0&updated_date_range_filter_end=0&actualsort=trend&p={i}&days=-1"
     )
     parsed_mods = parse_multiple_mods(mod_ids, noisy=True)
+"""

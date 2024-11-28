@@ -31,22 +31,19 @@ class XMLComment:
         self.text = text
 
     def dump(
-        self,
-        indent: int = 0,
-        indent_char: str = " ",
-        single_line: bool = False,
-        inline_content: bool = False,
+        self, indent: int = 0, indent_char: str = " ", single_line: bool = False, *args
     ) -> str:
         indent_str = "" if single_line else indent_char * indent
         return f"{indent_str}<!-- {self.text} -->"
 
     def to_element(self) -> "XMLElement":
         xml_obj = XMLElement.build_element(self.text)
-        if not xml_obj:
+        if xml_obj is None:
             raise XMLParserException(
                 "Unable to convert comment to element: Empty content.",
                 content=self.text,
             )
+
         return xml_obj
 
     def __repr__(self):
@@ -113,17 +110,20 @@ class XMLElement:
             content_str = f"{self.content}"
             if not single_line:
                 content_str = indent_char * (indent + 4) + content_str + "\n"
+
             result += content_str
 
         for child in self.childrens:
             child_str = child.dump(indent + 4, indent_char, single_line, inline_content)
             if not single_line:
                 child_str += "\n"
+
             result += child_str
 
         closing_tag = f"</{self.name}>"
         if not single_line:
             result += indent_char * indent
+
         result += closing_tag
 
         return result
@@ -156,6 +156,7 @@ class XMLElement:
                         position=i,
                         content=content,
                     )
+
                 i = pi_end + 2
 
             elif content.startswith("<!--", i):
@@ -164,10 +165,12 @@ class XMLElement:
                     raise XMLParserException(
                         "Unclosed comment", position=i, line=line, content=content
                     )
+
                 comment_text = content[i + 4 : end_comment].strip()
                 comment = XMLComment(comment_text)
                 if stack:
                     stack[-1].add_child(comment)
+
                 i = end_comment + 3
 
             elif content[i] == "<":
@@ -191,12 +194,16 @@ class XMLElement:
                             line=line,
                             content=content,
                         )
+
                     closed_element = stack.pop()
                     if not stack:
                         root = closed_element
+
                     else:
                         stack[-1].add_child(closed_element)
+
                     i = tag_end + 1
+
                 else:
                     tag_start = i + 1
                     tag_end = content.find(">", tag_start)
@@ -220,16 +227,20 @@ class XMLElement:
                             key, value = match.groups()
                             if value[0] in "\"'":
                                 value = value[1:-1]
+
                             attributes[key] = value
 
                     element = XMLElement(tag_name, attributes)
                     if is_self_closing:
                         if stack:
                             stack[-1].add_child(element)
+
                         else:
                             root = element
+
                     else:
                         stack.append(element)
+
                     i = tag_end + 1
 
             else:
@@ -237,9 +248,11 @@ class XMLElement:
                 next_tag_pos = content.find("<", i)
                 if next_tag_pos == -1:
                     next_tag_pos = len(content)
+
                 text_content = content[text_start:next_tag_pos]
                 if stack and text_content.strip():
                     stack[-1].content += text_content.strip()
+
                 i = next_tag_pos
 
         if stack:
@@ -263,6 +276,7 @@ class XMLElement:
             return element_name_lower == pattern_lower or pattern_lower in (
                 value.lower() for value in element.attributes.values()
             )
+
         compiled_pattern = re.compile(pattern, re.IGNORECASE)
         return compiled_pattern.search(element.name) is not None or any(
             compiled_pattern.search(value) for value in element.attributes.values()
@@ -272,6 +286,7 @@ class XMLElement:
     def _match_comment(text: str, pattern: str, exact_match: bool) -> bool:
         if exact_match:
             return text == pattern
+
         return re.search(pattern, text) is not None
 
     def find(
@@ -280,9 +295,11 @@ class XMLElement:
         def match_element(element: "XMLElement"):
             if XMLElement._match_name_and_attributes(element, pattern, exact_match):
                 yield element
+
             for child in element.childrens:
                 if isinstance(child, XMLElement):
                     yield from match_element(child)
+
                 elif isinstance(child, XMLComment) and XMLElement._match_comment(
                     child.text, pattern, exact_match
                 ):
@@ -297,6 +314,7 @@ class XMLElement:
             for child in element.childrens:
                 if isinstance(child, XMLElement):
                     yield from match_element(child)
+
                 elif isinstance(child, XMLComment) and XMLElement._match_comment(
                     child.text, pattern, exact_match
                 ):
@@ -310,6 +328,7 @@ class XMLElement:
         def match_element(element: "XMLElement"):
             if XMLElement._match_name_and_attributes(element, pattern, exact_match):
                 yield element
+
             for child in element.childrens:
                 if isinstance(child, XMLElement):
                     yield from match_element(child)
@@ -323,53 +342,13 @@ class XMLElement:
         )
 
 
-class XMLObject:
-    def __init__(self) -> None:
-        self.root: Optional[XMLElement] = None
-
-    def replace_element_with_comment(self, element_name: str) -> None:
-        if self.root:
-            self._replace_element_with_comment(self.root, element_name)
-
-    def _replace_element_with_comment(
-        self, element: XMLElement, element_name: str
-    ) -> None:
-        for i, child in enumerate(element.childrens):
-            if isinstance(child, XMLElement):
-                if child.name == element_name:
-                    element.childrens[i] = child.to_comment()
-                else:
-                    self._replace_element_with_comment(child, element_name)
-
-    def replace_comment_with_element(self, comment_text: str) -> None:
-        if self.root:
-            self._replace_comment_with_element(self.root, comment_text)
-
-    def _replace_comment_with_element(
-        self, element: XMLElement, comment_text: str
-    ) -> None:
-        for i, child in enumerate(element.childrens):
-            if isinstance(child, XMLComment):
-                if comment_text in child.text:
-                    element.childrens[i] = child.to_element()
-            elif isinstance(child, XMLElement):
-                self._replace_comment_with_element(child, comment_text)
-
-    def dump(
-        self,
-        indent_char: str = " ",
-        single_line: bool = False,
-        inline_content: bool = True,
-    ) -> str:
-        if self.root:
-            return self.root.dump(0, indent_char, single_line, inline_content)
-        return ""
-
+class XMLBuilder:
     @staticmethod
-    def load_file(path: Union[Path, str], encoding: str = "utf-8-sig") -> "XMLObject":
+    def build_form_file(
+        path: Union[Path, str], encoding: str = "utf-8-sig"
+    ) -> Union[XMLElement, None]:
         path = Path(path)
         with open(path, "r", encoding=encoding) as file:
             content = file.read()
-        obj = XMLObject()
-        obj.root = XMLElement.build_element(content)
-        return obj
+
+        return XMLElement.build_element(content)

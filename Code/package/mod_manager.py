@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
-from Code.xml_object import XMLComment, XMLElement, XMLObject
+from Code.xml_object import XMLBuilder, XMLComment, XMLElement
 
 from .conditions import evaluate_condition
 from .dataclasses import ModUnit
@@ -47,14 +47,12 @@ class ModManager:
             )
             return
 
-        obj = XMLObject.load_file(path_to_config_player)
-        if not obj.root:
+        xml_obj = XMLBuilder.build_form_file(path_to_config_player)
+        if xml_obj is None:
             logger.error(f"Invalid config_player.xml!\n|Path: {path_to_config_player}")
             return
 
-        obj = obj.root
-
-        packages = obj.find_only_elements("package")
+        packages = xml_obj.find_only_elements("package")
 
         package_paths = [
             (i, package.attributes.get("path", None))
@@ -145,7 +143,7 @@ class ModManager:
         # CS
         config_path = game_path / "LuaCsSetupConfig.xml"
         if config_path.exists():
-            xml_obj = XMLObject.load_file(config_path).root
+            xml_obj = XMLBuilder.build_form_file(config_path)
             has_cs = (
                 xml_obj.attributes.get("EnableCsScripting", "false").lower() == "true"
                 if xml_obj
@@ -268,12 +266,11 @@ class ModManager:
             logger.error(f"Resolved path is not a valid file: {user_config}")
             return
 
-        obj = XMLObject.load_file(user_config)
-        if obj.root is None:
+        obj = XMLBuilder.build_form_file(user_config)
+        if obj is None:
             logger.error(f"Invalid config_player.xml\n|Path: {user_config}")
             return
 
-        obj = obj.root
         regularpackages = next(
             (item for item in obj.find_only_elements("regularpackages")), None
         )

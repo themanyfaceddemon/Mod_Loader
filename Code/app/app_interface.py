@@ -132,7 +132,7 @@ class AppInterface:
         ModManager.save_mods()
 
         game_dir = AppConfig.get("barotrauma_dir", None)
-        if not game_dir:
+        if game_dir is None:
             AppInterface.show_error(loc.get_string("error-game-dir-not-set"))
             return
 
