@@ -1,0 +1,21 @@
+<!-- Example of modparts.xml for mods -->
+<?xml version="1.0" encoding="UTF-8"?>
+<modparts>
+
+    <ToggleFile file="%ModDir%/..." modID="1452" />
+    <!-- Переключает xml файл из мода, так же убирает/добавляет его из/в filelist.xml -->
+
+    <Tag>
+        <not_important_for_now file="%ModDir%/..." modID="1234" tag="SomeTag" />
+        <!-- Переключает всё содержимое между тегами. -->
+        <!-- Пример: -->
+        <!--MBT: SomeTag: start-->
+        <bla bla="123" bla="false"/>
+        <!--MBT: SomeTag: end-->
+        <!-- Станет -->
+        <!--MBT: SomeTag: start-->
+        <!-- <bla bla="123" bla="false"/> -->
+        <!--MBT: SomeTag: end-->
+    </Tag>
+
+</modparts>
