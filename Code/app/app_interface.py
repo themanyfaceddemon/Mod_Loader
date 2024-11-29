@@ -1,7 +1,9 @@
 import json
 import logging
+import webbrowser
 
 import dearpygui.dearpygui as dpg
+import requests
 
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppConfig
@@ -93,6 +95,36 @@ class AppInterface:
             label=loc.get_string("cac-window-name"),
             parent="main_view_bar",
             callback=AppInterface.create_cac_window,
+        )
+
+        is_latest = None
+        try:
+            response = requests.get(
+                "https://api.github.com/repos/themanyfaceddemon/Barotrauma_Modding_Tool/releases/latest"
+            )
+            if response.status_code == 200:
+                latest_release = response.json()
+                is_latest = AppConfig.version == latest_release["tag_name"]
+
+        except Exception:
+            pass
+
+        if is_latest is True:
+            label = loc.get_string("base-yes")
+
+        elif is_latest is False:
+            label = loc.get_string("base-no")
+
+        else:
+            label = loc.get_string("base-unknown")
+
+        dpg.add_menu_item(
+            label=(loc.get_string("cur-version-latest") + " " + label),
+            parent="main_view_bar",
+            callback=lambda: webbrowser.open(
+                "https://github.com/themanyfaceddemon/Barotrauma_Modding_Tool/releases/latest"
+            ),
+            enabled=(not is_latest),
         )
 
     @staticmethod

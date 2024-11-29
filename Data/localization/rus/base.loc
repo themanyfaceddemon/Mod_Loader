@@ -1,10 +1,8 @@
-base-not-set = Не установлено
-
-base-no = Нет
-base-yes = Да
-
-base-start = Начать
 base-close = Закрыть
-base-unknown = Неизвестно
-base-not-specified = Не указана
 base-conflict = Обнаружен конфликт
+base-no = Нет
+base-not-set = Не установлено
+base-not-specified = Не указана
+base-start = Начать
+base-unknown = Неизвестно
+base-yes = Да
