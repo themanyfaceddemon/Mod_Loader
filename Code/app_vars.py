@@ -3,11 +3,12 @@ import json
 import logging
 import platform
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Final, Optional
 
 
 class AppConfig:
     user_config: Dict[str, Any] = {}
+    version: Final[str] = "0.1.0h1"
 
     _root: Path = Path(__file__).parents[1]
     _data_root: Path = _root / "Data"
@@ -92,34 +93,37 @@ class AppConfig:
     def get_mods_path(cls) -> None:
         if platform.system() == "Windows":
             path_to_mod = (
-                    Path.home()
-                    / "AppData"
-                    / "Local"
-                    / "Daedalic Entertainment GmbH"
-                    / "Barotrauma"
-                    / "WorkshopMods"
-                    / "Installed"
+                Path.home()
+                / "AppData"
+                / "Local"
+                / "Daedalic Entertainment GmbH"
+                / "Barotrauma"
+                / "WorkshopMods"
+                / "Installed"
             )
+
         elif platform.system() == "Linux":
             path_to_mod = (
-                    Path.home()
-                    / ".local"
-                    / "share"
-                    / "Daedalic Entertainment GmbH"
-                    / "Barotrauma"
-                    / "WorkshopMods"
-                    / "Installed"
+                Path.home()
+                / ".local"
+                / "share"
+                / "Daedalic Entertainment GmbH"
+                / "Barotrauma"
+                / "WorkshopMods"
+                / "Installed"
             )
+
         elif platform.system() == "Darwin":
             path_to_mod = (
-                    Path.home()
-                    / "Library"
-                    / "Application Support"
-                    / "Daedalic Entertainment GmbH"
-                    / "Barotrauma"
-                    / "WorkshopMods"
-                    / "Installed"
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Daedalic Entertainment GmbH"
+                / "Barotrauma"
+                / "WorkshopMods"
+                / "Installed"
             )
+
         else:
             raise RuntimeError("Unknown operating system")
 
