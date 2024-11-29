@@ -1,10 +1,8 @@
+error-game-dir-not-set = Kein Installationsverzeichnis angegeben!
+error-unknown-os = Unbekanntes Betriebssystem
 menu-bar-settings-lable = Einstellungen
-
+menu-bar-start-game = Spiel starten
+menu-language = Sprache
 menu-toggle-experimental = Experiementeller Modus
 setting-toggle-install-lua = Automatische LUA Installation
 setting-toggle-skip-intro = Intro überspringen
-menu-language = Sprache
-
-menu-bar-start-game = Spiel starten
-error-game-dir-not-set = Kein Installationsverzeichnis angegeben!
-error-unknown-os = Unbekanntes Betriebssystem
