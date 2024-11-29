@@ -118,7 +118,12 @@ class Metadata:
 @dataclass
 class ModUnit(Identifier):
     local: bool
+    
     corepackage: bool
+    skip_load: bool
+    
+    has_toggle_content: bool
+    
     load_order: Optional[int]
     path: Path
 
@@ -137,6 +142,8 @@ class ModUnit(Identifier):
         return ModUnit(
             "base-not-set",
             None,
+            False,
+            False,
             False,
             False,
             None,
@@ -188,7 +195,7 @@ class ModUnit(Identifier):
             path = Path(new_path / path)
 
         ModUnit.parse_filelist(obj, path)
-        if obj.corepackage:
+        if obj.corepackage or obj.skip_load:
             logging.warning(
                 f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
             )
@@ -204,7 +211,12 @@ class ModUnit(Identifier):
         )
 
         ModUnit.parse_files(obj, path)
+        if obj.skip_load:
+            return None
+
         ModUnit.parse_metadata(obj, path)
+        if obj.skip_load:
+            return None
 
         return obj
 
@@ -251,6 +263,10 @@ class ModUnit(Identifier):
             ]:
                 continue
 
+            if xml_file_path.name.lower() == "modparts.xml":
+                obj.has_toggle_content = True
+                continue
+
             try:
                 xml_obj = XMLBuilder.build_form_file(xml_file_path)
                 if xml_obj is None:
@@ -260,6 +276,9 @@ class ModUnit(Identifier):
                 id_parser_unit = extract_ids(xml_obj)
                 obj.add_id.update(id_parser_unit.add_id)
                 obj.override_id.update(id_parser_unit.override_id)
+                if not obj.has_toggle_content:
+                    for elem in xml_obj.find_only_comments("BTM:*"):
+                        obj.has_toggle_content = True
 
             except Exception as err:
                 logger.error(str(err) + f"\n|Mod: {obj!r}")
