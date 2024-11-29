@@ -316,7 +316,9 @@ class ModManager:
                             )
 
                 elif dep.condition:
-                    if evaluate_condition(dep.condition, active_mods_ids):
+                    if evaluate_condition(
+                        dep.condition, active_mods_ids=active_mods_ids
+                    ):
                         if dep.id not in active_mods_ids:
                             mod.metadata.errors.append(
                                 loc.get_string(
@@ -367,7 +369,7 @@ class ModManager:
         for mod in mods:
             for dep in mod.metadata.dependencies:
                 if dep.condition and not evaluate_condition(
-                    dep.condition, active_mod_ids
+                    dep.condition, active_mod_ids=active_mod_ids
                 ):
                     continue
 
