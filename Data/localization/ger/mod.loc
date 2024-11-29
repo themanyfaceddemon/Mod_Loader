@@ -27,3 +27,4 @@ label-mod-name = Mod-Name:
 
 label-license = Lizenz:
 base-conflict = Konflikt gefunden 
+mod-unfind-mod = Erforderlicher Mod {mod_name}|{mod_id}
