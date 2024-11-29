@@ -11,6 +11,10 @@ from .id_parser import extract_ids
 logger = logging.getLogger("ModBuild")
 
 
+class SkipLoadBuild(Exception):
+    pass
+
+
 @dataclass
 class Identifier:
     name: str
@@ -118,12 +122,11 @@ class Metadata:
 @dataclass
 class ModUnit(Identifier):
     local: bool
-    
+
     corepackage: bool
-    skip_load: bool
-    
+
     has_toggle_content: bool
-    
+
     load_order: Optional[int]
     path: Path
 
@@ -142,7 +145,6 @@ class ModUnit(Identifier):
         return ModUnit(
             "base-not-set",
             None,
-            False,
             False,
             False,
             False,
@@ -182,43 +184,42 @@ class ModUnit(Identifier):
 
     @staticmethod
     def build_by_path(path: (Path | str)) -> Optional["ModUnit"]:
-        path = Path(path)
+        try:
+            path = Path(path)
 
-        obj = ModUnit.create_empty()
+            obj = ModUnit.create_empty()
 
-        if path.parts[0] == "LocalMods":
-            obj.local = True
-            new_path = AppConfig.get("barotrauma_dir", None)
-            if new_path is None:
-                raise ValueError("Game dir not set!")
+            if path.parts[0] == "LocalMods":
+                obj.local = True
+                new_path = AppConfig.get("barotrauma_dir", None)
+                if new_path is None:
+                    raise ValueError("Game dir not set!")
 
-            path = Path(new_path / path)
+                path = Path(new_path / path)
 
-        ModUnit.parse_filelist(obj, path)
-        if obj.corepackage or obj.skip_load:
-            logging.warning(
-                f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
+            ModUnit.parse_filelist(obj, path)
+            if obj.corepackage:
+                logging.warning(
+                    f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
+                )
+                return None
+
+            obj.path = path
+            obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
+            obj.use_cs = any(
+                [
+                    ModUnit.has_file(path, ".[Cc][Ss]"),
+                    ModUnit.has_file(path, ".[Dd][Ll][Ll]"),
+                ]
             )
+
+            ModUnit.parse_files(obj, path)
+            ModUnit.parse_metadata(obj, path)
+
+            return obj
+
+        except SkipLoadBuild:
             return None
-
-        obj.path = path
-        obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
-        obj.use_cs = any(
-            [
-                ModUnit.has_file(path, ".[Cc][Ss]"),
-                ModUnit.has_file(path, ".[Dd][Ll][Ll]"),
-            ]
-        )
-
-        ModUnit.parse_files(obj, path)
-        if obj.skip_load:
-            return None
-
-        ModUnit.parse_metadata(obj, path)
-        if obj.skip_load:
-            return None
-
-        return obj
 
     @staticmethod
     def has_file(path: Path, extension: str) -> bool:
