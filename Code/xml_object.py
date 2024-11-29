@@ -335,6 +335,29 @@ class XMLElement:
 
         yield from match_element(self)
 
+    def find_element_after_comment(
+        self, pattern: str, exact_match: bool = False
+    ) -> Generator["XMLElement", None, None]:
+        def match_element(element: "XMLElement"):
+            previous_was_comment = False
+            for child in element.childrens:
+                if isinstance(child, XMLComment) and XMLElement._match_comment(
+                    child.text, pattern, exact_match
+                ):
+                    previous_was_comment = True
+
+                elif isinstance(child, XMLElement):
+                    if previous_was_comment:
+                        yield child
+                        previous_was_comment = False
+
+                    yield from match_element(child)
+
+                else:
+                    previous_was_comment = False
+
+        yield from match_element(self)
+
     def __repr__(self):
         return (
             f"XMLElement(name={repr(self.name)}, attributes={self.attributes}, "
