@@ -285,7 +285,9 @@ class ModManager:
 
         active_mod_id = set([mod.id for mod in ModManager.active_mods])
         for mod in ModManager.active_mods:
-            PartsManager.do_chenges(mod, active_mod_id)
+            if mod.has_toggle_content:
+                PartsManager.do_chenges(mod, active_mod_id)
+
             mod_path = mod.get_str_path()
             regularpackages.add_child(XMLComment(mod.name))
             regularpackages.add_child(
@@ -348,7 +350,8 @@ class ModManager:
             del active_mod_id
 
             XMLBuilder.save(xml_obj, user_config_path)
-            PartsManager.rollback_changes_no_thread(mod)
+            if mod.has_toggle_content:
+                PartsManager.rollback_changes_no_thread(mod)
 
     @staticmethod
     def process_errors():
