@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 import platform
 import sys
 from pathlib import Path
@@ -142,10 +143,16 @@ if __name__ == "__main__":
 
         configure_logging(args.debug)
 
-        if platform.system() == "Darwin":
+        platform_name = platform.system()
+        if platform_name == "win32":
+            os.environ["PYTHONIOENCODING"] = "utf-8"
+            os.environ["PYTHONUTF8"] = "1"
+
+        elif platform_name == "Darwin":
             logging.warning(
                 "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
             )
+        del platform_name
 
         if args.ngui:
             args_no_gui(args.sg, args.apath, args.alua, args.si)
