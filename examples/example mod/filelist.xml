@@ -1,0 +1,6 @@
+<contentpackage name="Item IO Framework Tweak" modversion="0.0.18" corepackage="False" gameversion="1.2.8.0">
+    <Item file="%ModDir%/XML/ItemBox.xml" />
+    <Text file="%ModDir%/XML/Text/Russian.xml" />
+    <Text file="%ModDir%/XML/Text/English.xml" />
+    <Text file="%ModDir%/XML/Text/SimplifiedChinese.xml" />
+</contentpackage>

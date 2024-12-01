@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modparts>
+    <file file="%ModDir%/XML/Text/SimplifiedChinese.xml" conditions="ifhas('3329396988')" type="Text" setState="off" />
+</modparts>

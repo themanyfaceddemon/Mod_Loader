@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <meta>
+        <author>shangjiaxuan</author>
+    </meta>
+
+    <dependencies>
+        <conflict name="Potions" steamID="3373019303" />
+    </dependencies>
+</metadata>

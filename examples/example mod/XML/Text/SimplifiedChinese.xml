@@ -1,0 +1,8 @@
+<infotexts language="Simplified Chinese" nowhitespace="false" translatedname="中文(简体)">
+    <entityname.StackBox>
+        物品箱
+    </entityname.StackBox>
+    <entitydescription.StackBox>
+        让你可叠加的物品叠加在一个实体上面
+    </entitydescription.StackBox>
+</infotexts>

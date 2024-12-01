@@ -1,0 +1,8 @@
+<infotexts language="Russian" nowhitespace="false" translatedname="Русский">
+    <entityname.StackBox>
+        Контейнер для предметов
+    </entityname.StackBox>
+    <entitydescription.StackBox>
+        Хранит предметы которые могут быть помещены в стопку в более компактном формате.
+    </entitydescription.StackBox>
+</infotexts>
