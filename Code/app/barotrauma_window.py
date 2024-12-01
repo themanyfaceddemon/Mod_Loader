@@ -86,7 +86,7 @@ class BarotraumaWindow:
                 dpg.configure_item("barotrauma_cur_path_valid", color=[0, 255, 0])
 
                 AppConfig.set("barotrauma_dir", str(path))
-                AppConfig.get_mods_path()
+                AppConfig.set_steam_mods_path()
                 logger.info(f"Valid path set: {path}")
 
                 ModManager.load_mods()

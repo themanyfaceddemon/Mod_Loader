@@ -87,7 +87,7 @@ def args_no_gui(
             res = Game.search_all_games_on_all_drives()
             if res:
                 AppConfig.set("barotrauma_dir", str(res[0]))
-                AppConfig.get_mods_path()
+                AppConfig.set_steam_mods_path()
                 ModManager.load_mods()
                 ModManager.load_cslua_config()
 

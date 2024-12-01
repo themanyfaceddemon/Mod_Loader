@@ -425,7 +425,7 @@ class XMLElement(XMLBaseStruct):
                 end_comment = None
                 elements_between = []
 
-            elif collecting:
+            else:
                 elements_between.append(element)
 
 

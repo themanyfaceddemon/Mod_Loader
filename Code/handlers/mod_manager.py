@@ -35,10 +35,12 @@ class ModManager:
         ModManager.active_mods.clear()
         ModManager.inactive_mods.clear()
         ModManager.load_active_mods(game_path / "config_player.xml")
-        inactive_mods_dir = AppConfig.get("barotrauma_install_mod_dir", None)
+        inactive_mods_dir = AppConfig.get("steam_mod_dir", None)
         if inactive_mods_dir:
             inactive_mods_dir = Path(inactive_mods_dir)
             ModManager.load_inactive_mods(inactive_mods_dir)
+
+        ModManager.load_inactive_mods((game_path / "LocalMods"))
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -93,11 +95,13 @@ class ModManager:
     @staticmethod
     def load_inactive_mods(path_to_all_mods: Path):
         if not path_to_all_mods.exists():
-            logger.error("Barotrauma install mod dir not set!")
+            logger.error(f"Dir not exists!\n|Path: {path_to_all_mods}")
             return
 
         package_paths = [
-            path for path in Path(path_to_all_mods).iterdir() if path.is_dir()
+            path
+            for path in Path(path_to_all_mods).iterdir()
+            if path.is_dir() and not path.name.startswith(".")
         ]
 
         def process_package(path):
@@ -112,7 +116,9 @@ class ModManager:
                 logger.error(err)
                 return None
 
-        all_mods_ids = {mod.id for mod in ModManager.active_mods}
+        all_mods_ids = {
+            mod.id for mod in ModManager.active_mods + ModManager.inactive_mods
+        }
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_package, path) for path in package_paths]
             for future in as_completed(futures):

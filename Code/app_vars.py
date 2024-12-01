@@ -20,6 +20,7 @@ class AppConfig:
         "modparts.xml",
         "file_list.xml",
         "files_list.xml",
+        "runconfig.xml",
     ]
 
     @classmethod
@@ -98,7 +99,23 @@ class AppConfig:
         return game_path
 
     @classmethod
-    def get_mods_path(cls) -> None:
+    def get_steam_mod_path(cls) -> Optional[Path]:
+        path = cls.user_config.get("steam_mod_dir")
+        if path is None:
+            return None
+
+        return Path(path)
+
+    @classmethod
+    def get_local_mod_path(cls) -> Optional[Path]:
+        gp = cls.get_game_path()
+        if gp is None:
+            return None
+
+        return Path(gp, "LocalMods")
+
+    @classmethod
+    def set_steam_mods_path(cls) -> None:
         if platform.system() == "Windows":
             path_to_mod = (
                 Path.home()
@@ -135,4 +152,4 @@ class AppConfig:
         else:
             raise RuntimeError("Unknown operating system")
 
-        AppConfig.set("barotrauma_install_mod_dir", str(path_to_mod))
+        AppConfig.set("steam_mod_dir", str(path_to_mod))
