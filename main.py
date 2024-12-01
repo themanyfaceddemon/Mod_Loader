@@ -80,7 +80,11 @@ def init_classes(debug: bool) -> None:
 
 
 def args_no_gui(
-    start_game: bool, auto_game_path: bool, auto_lua: bool, skip_intro: bool
+    start_game: bool,
+    auto_game_path: bool,
+    auto_lua: bool,
+    skip_intro: bool,
+    process_btm: bool,
 ):
     if auto_game_path:
         game_path = AppConfig.get_game_path()
@@ -98,6 +102,9 @@ def args_no_gui(
 
     if auto_lua:
         Game.download_update_lua()
+
+    if process_btm:
+        ModManager.save_mods()
 
     if start_game:
         Game.run_game(skip_intro=skip_intro)
@@ -139,6 +146,11 @@ if __name__ == "__main__":
         parser.add_argument(
             "--si", action="store_true", help="Skip intro. Doesn't work without --sg"
         )
+        parser.add_argument(
+            "--pbmt",
+            action="store_true",
+            help="Enables processing of modifications to accept the work of disabled modules",
+        )
         args = parser.parse_args()
 
         configure_logging(args.debug)
@@ -155,7 +167,7 @@ if __name__ == "__main__":
         del platform_name
 
         if args.ngui:
-            args_no_gui(args.sg, args.apath, args.alua, args.si)
+            args_no_gui(args.sg, args.apath, args.alua, args.si, args.pbmt)
 
         else:
             main(args.debug)
