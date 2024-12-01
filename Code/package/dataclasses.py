@@ -1,14 +1,18 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Set
 
 from Code.app_vars import AppConfig
 from Code.xml_object import XMLBuilder
 
 from .id_parser import extract_ids
 
-logger = logging.getLogger("ModBuild")
+logger = logging.getLogger(__name__)
+
+
+class SkipLoadBuild(Exception):
+    pass
 
 
 @dataclass
@@ -118,7 +122,11 @@ class Metadata:
 @dataclass
 class ModUnit(Identifier):
     local: bool
+
     corepackage: bool
+
+    has_toggle_content: bool
+
     load_order: Optional[int]
     path: Path
 
@@ -129,14 +137,15 @@ class ModUnit(Identifier):
 
     settings: Dict[str, Any]
 
-    add_id: set[str]
-    override_id: set[str]
+    add_id: Set[str]
+    override_id: Set[str]
 
     @staticmethod
     def create_empty() -> "ModUnit":
         return ModUnit(
             "base-not-set",
             None,
+            False,
             False,
             False,
             None,
@@ -149,7 +158,7 @@ class ModUnit(Identifier):
             set(),
         )
 
-    def get_path(self) -> str:
+    def get_str_path(self) -> str:
         if not self.local:
             return str(self.path)
 
@@ -175,38 +184,42 @@ class ModUnit(Identifier):
 
     @staticmethod
     def build_by_path(path: (Path | str)) -> Optional["ModUnit"]:
-        path = Path(path)
+        try:
+            path = Path(path)
 
-        obj = ModUnit.create_empty()
+            obj = ModUnit.create_empty()
 
-        if path.parts[0] == "LocalMods":
-            obj.local = True
-            new_path = AppConfig.get("barotrauma_dir", None)
-            if new_path is None:
-                raise ValueError("Game dir not set!")
+            if path.parts[0] == "LocalMods":
+                obj.local = True
+                new_path = AppConfig.get("barotrauma_dir", None)
+                if new_path is None:
+                    raise ValueError("Game dir not set!")
 
-            path = Path(new_path / path)
+                path = Path(new_path / path)
 
-        ModUnit.parse_filelist(obj, path)
-        if obj.corepackage:
-            logging.warning(
-                f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
+            ModUnit.parse_filelist(obj, path)
+            if obj.corepackage:
+                logging.warning(
+                    f"The program does not support core packages!\n|Mod details: '{obj.name}' | Steam ID: '{obj.steam_id}'"
+                )
+                return None
+
+            obj.path = path
+            obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
+            obj.use_cs = any(
+                [
+                    ModUnit.has_file(path, ".[Cc][Ss]"),
+                    ModUnit.has_file(path, ".[Dd][Ll][Ll]"),
+                ]
             )
+
+            ModUnit.parse_files(obj, path)
+            ModUnit.parse_metadata(obj, path)
+
+            return obj
+
+        except SkipLoadBuild:
             return None
-
-        obj.path = path
-        obj.use_lua = ModUnit.has_file(path, ".[Ll][Uu][Aa]")
-        obj.use_cs = any(
-            [
-                ModUnit.has_file(path, ".[Cc][Ss]"),
-                ModUnit.has_file(path, ".[Dd][Ll][Ll]"),
-            ]
-        )
-
-        ModUnit.parse_files(obj, path)
-        ModUnit.parse_metadata(obj, path)
-
-        return obj
 
     @staticmethod
     def has_file(path: Path, extension: str) -> bool:
@@ -221,7 +234,7 @@ class ModUnit(Identifier):
         if not file_list_path.exists():
             raise ValueError(f"{file_list_path} don't exsist")
 
-        xml_obj = XMLBuilder.build_form_file(file_list_path)
+        xml_obj = XMLBuilder.load(file_list_path)
         if xml_obj is None:
             raise ValueError(f"{file_list_path} invalid xml struct")
 
@@ -243,16 +256,15 @@ class ModUnit(Identifier):
         xml_files_paths = path.rglob("*.[Xx][Mm][Ll]")
 
         for xml_file_path in xml_files_paths:
-            if xml_file_path.name.lower() in [
-                "filelist.xml",
-                "metadata.xml",
-                "file_list.xml",
-                "files_list.xml",
-            ]:
+            if xml_file_path.name.lower() == "modparts.xml":
+                obj.has_toggle_content = True
+                continue
+
+            if xml_file_path.name.lower() in AppConfig.xml_system_dirs:
                 continue
 
             try:
-                xml_obj = XMLBuilder.build_form_file(xml_file_path)
+                xml_obj = XMLBuilder.load(xml_file_path)
                 if xml_obj is None:
                     logger.warning(f"File {xml_file_path} is empty")
                     continue
@@ -260,6 +272,9 @@ class ModUnit(Identifier):
                 id_parser_unit = extract_ids(xml_obj)
                 obj.add_id.update(id_parser_unit.add_id)
                 obj.override_id.update(id_parser_unit.override_id)
+                if not obj.has_toggle_content:
+                    for elem in xml_obj.find_only_comments("BTM:*"):
+                        obj.has_toggle_content = True
 
             except Exception as err:
                 logger.error(str(err) + f"\n|Mod: {obj!r}")
@@ -280,12 +295,12 @@ class ModUnit(Identifier):
             else:
                 return
 
-        xml_obj = XMLBuilder.build_form_file(metadata_path)
+        xml_obj = XMLBuilder.load(metadata_path)
         if xml_obj is None:
             raise ValueError(f"Empty metadata.xml for {obj.id}!")
 
         for element in xml_obj.iter_non_comment_childrens():
-            element_name_lower = element.name.lower()
+            element_name_lower = element.tag.lower()
 
             if element_name_lower == "settings":
                 for ch in element.iter_non_comment_childrens():
@@ -295,7 +310,7 @@ class ModUnit(Identifier):
 
             if element_name_lower == "meta":
                 for ch in element.iter_non_comment_childrens():
-                    ch_name_lower = ch.name.lower()
+                    ch_name_lower = ch.tag.lower()
                     if ch_name_lower == "author":
                         obj.metadata.author_name = ch.content
                     elif ch_name_lower == "license":
@@ -308,7 +323,7 @@ class ModUnit(Identifier):
             if element_name_lower == "dependencies":
                 dependencies = []
                 for ch in element.iter_non_comment_childrens():
-                    dep_type = ch.name
+                    dep_type = ch.tag
 
                     if not Dependencie.is_valid_type(dep_type):
                         logger.warning(
@@ -360,13 +375,13 @@ class ModUnit(Identifier):
             else:
                 return
 
-        xml_obj = XMLBuilder.build_form_file(metadata_path)
+        xml_obj = XMLBuilder.load(metadata_path)
         if xml_obj is None:
             raise ValueError(f"Empty metadata.xml for {self.id}!")
 
         for element in xml_obj.find_only_elements("meta"):
             for ch in element.iter_non_comment_childrens():
-                ch_name_lower = ch.name.lower()
+                ch_name_lower = ch.tag.lower()
                 if ch_name_lower == "warning":
                     self.metadata.warnings.extend(ch.content.strip().splitlines())
 

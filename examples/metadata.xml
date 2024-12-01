@@ -51,7 +51,7 @@
             Attributes:
                 - name: The readable name of the dependency mod.
                 - steamID: The Steam ID of the dependency mod.
-                - condition: Condition under which this dependency is applied (e.g., ifhas('ModName or steamID')). Default: "None".
+                - condition: Condition under which this dependency is applied (e.g., ifhas('ModName or steamID')). Default: "None". Sep - | = or; & - and, () - Priority
 
         - <requirement>: Specifies that this mod should be placed BELOW the listed mod.
             Attributes are the same as for <patch>.

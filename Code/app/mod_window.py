@@ -1,8 +1,11 @@
+import logging
+
 import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig
+from Code.handlers import ModManager
 from Code.loc import Localization as loc
-from Code.package import ModManager, ModUnit
+from Code.package import ModUnit
 
 
 class ModWindow:
@@ -150,7 +153,11 @@ class ModWindow:
             with dpg.popup(parent=mod_name_tag):
                 with dpg.group(horizontal=True):
                     dpg.add_text(loc.get_string("label-author"), color=[0, 102, 204])
-                    dpg.add_text(mod.metadata.author_name)
+                    dpg.add_text(
+                        mod.metadata.author_name
+                        if mod.metadata.author_name == "base-unknown"
+                        else loc.get_string("base-unknown")
+                    )
 
                 with dpg.group(horizontal=True):
                     dpg.add_text(loc.get_string("label-license"), color=[169, 169, 169])
@@ -172,6 +179,8 @@ class ModWindow:
                         loc.get_string("label-mod-version"), color=[34, 139, 34]
                     )
                     dpg.add_text(mod.metadata.mod_version)
+
+
 
                 if mod.metadata.errors:
                     dpg.add_text(loc.get_string("label-errors"), color=[255, 0, 0])
@@ -236,7 +245,7 @@ class ModWindow:
 
         with dpg.window(
             label=title,
-            width=400,
+            width=600,
             height=300,
             tag=window_tag,
             on_close=lambda: dpg.delete_item(window_tag),
@@ -253,7 +262,11 @@ class ModWindow:
                         dpg.add_text(
                             loc.get_string("label-author"), color=[0, 102, 204]
                         )
-                        dpg.add_text(mod.metadata.author_name)
+                        dpg.add_text(
+                            mod.metadata.author_name
+                            if mod.metadata.author_name == "base-unknown"
+                            else loc.get_string("base-unknown")
+                        )
 
                     with dpg.group(horizontal=True):
                         dpg.add_text(
@@ -292,6 +305,12 @@ class ModWindow:
                             loc.get_string("label-mod-version"), color=[34, 139, 34]
                         )
                         dpg.add_text(mod.metadata.mod_version)
+                
+                if AppConfig.get("debug", False):
+                    dpg.add_button(
+                        label="print obj info",
+                        callback=lambda: logging.debug(mod.__repr__()),
+                    )
             dpg.add_separator()
 
             if mod.metadata.errors:

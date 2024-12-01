@@ -7,12 +7,13 @@ from typing import List, Optional
 
 from Code.app_vars import AppConfig
 from Code.loc import Localization as loc
+from Code.package.dataclasses import ModUnit
 from Code.xml_object import XMLBuilder, XMLComment, XMLElement
 
-from .conditions import evaluate_condition
-from .dataclasses import ModUnit
+from .condition_manager import process_condition
+from .parts_manager import PartsManager
 
-logger = logging.getLogger("ModManager")
+logger = logging.getLogger(__name__)
 
 
 class ModManager:
@@ -23,7 +24,7 @@ class ModManager:
     def init():
         ModManager.load_mods()
         ModManager.load_cslua_config()
-        atexit.register(ModManager.save_mods)
+        atexit.register(ModManager._on_exit)
 
     @staticmethod
     def load_mods():
@@ -34,10 +35,12 @@ class ModManager:
         ModManager.active_mods.clear()
         ModManager.inactive_mods.clear()
         ModManager.load_active_mods(game_path / "config_player.xml")
-        inactive_mods_dir = AppConfig.get("barotrauma_install_mod_dir", None)
+        inactive_mods_dir = AppConfig.get("steam_mod_dir", None)
         if inactive_mods_dir:
             inactive_mods_dir = Path(inactive_mods_dir)
             ModManager.load_inactive_mods(inactive_mods_dir)
+
+        ModManager.load_inactive_mods((game_path / "LocalMods"))
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -47,7 +50,7 @@ class ModManager:
             )
             return
 
-        xml_obj = XMLBuilder.build_form_file(path_to_config_player)
+        xml_obj = XMLBuilder.load(path_to_config_player)
         if xml_obj is None:
             logger.error(f"Invalid config_player.xml!\n|Path: {path_to_config_player}")
             return
@@ -57,7 +60,7 @@ class ModManager:
         package_paths = [
             (i, package.attributes.get("path", None))
             for i, package in enumerate(packages, start=1)
-            if package.name == "package" and package.attributes.get("path", None)
+            if package.tag == "package" and package.attributes.get("path", None)
         ]
 
         def process_package(index, path):
@@ -92,11 +95,13 @@ class ModManager:
     @staticmethod
     def load_inactive_mods(path_to_all_mods: Path):
         if not path_to_all_mods.exists():
-            logger.error("Barotrauma install mod dir not set!")
+            logger.error(f"Dir not exists!\n|Path: {path_to_all_mods}")
             return
 
         package_paths = [
-            path for path in Path(path_to_all_mods).iterdir() if path.is_dir()
+            path
+            for path in Path(path_to_all_mods).iterdir()
+            if path.is_dir() and not path.name.startswith(".")
         ]
 
         def process_package(path):
@@ -111,7 +116,9 @@ class ModManager:
                 logger.error(err)
                 return None
 
-        all_mods_ids = {mod.id for mod in ModManager.active_mods}
+        all_mods_ids = {
+            mod.id for mod in ModManager.active_mods + ModManager.inactive_mods
+        }
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_package, path) for path in package_paths]
             for future in as_completed(futures):
@@ -143,7 +150,7 @@ class ModManager:
         # CS
         config_path = game_path / "LuaCsSetupConfig.xml"
         if config_path.exists():
-            xml_obj = XMLBuilder.build_form_file(config_path)
+            xml_obj = XMLBuilder.load(config_path)
             has_cs = (
                 xml_obj.attributes.get("EnableCsScripting", "false").lower() == "true"
                 if xml_obj
@@ -256,23 +263,25 @@ class ModManager:
             logger.error(f"Game path does not exist!\n|Path: {game_path}")
             return
 
-        user_config = game_path / "config_player.xml"
-        if not user_config.exists():
-            logger.error(f"config_player.xml does not exist!\n|Path: {user_config}")
+        user_config_path = game_path / "config_player.xml"
+        if not user_config_path.exists():
+            logger.error(
+                f"config_player.xml does not exist!\n|Path: {user_config_path}"
+            )
             return
 
-        user_config = user_config.resolve()
-        if not user_config.is_file():
-            logger.error(f"Resolved path is not a valid file: {user_config}")
+        user_config_path = user_config_path.resolve()
+        if not user_config_path.is_file():
+            logger.error(f"Resolved path is not a valid file: {user_config_path}")
             return
 
-        obj = XMLBuilder.build_form_file(user_config)
-        if obj is None:
-            logger.error(f"Invalid config_player.xml\n|Path: {user_config}")
+        xml_obj = XMLBuilder.load(user_config_path)
+        if xml_obj is None:
+            logger.error(f"Invalid config_player.xml\n|Path: {user_config_path}")
             return
 
         regularpackages = next(
-            (item for item in obj.find_only_elements("regularpackages")), None
+            (item for item in xml_obj.find_only_elements("regularpackages")), None
         )
         if regularpackages is None:
             logger.error("No 'regularpackages' element found in config_player.xml.")
@@ -280,21 +289,75 @@ class ModManager:
 
         regularpackages.childrens.clear()
 
+        active_mod_id = set([mod.id for mod in ModManager.active_mods])
         for mod in ModManager.active_mods:
-            mod_path = mod.get_path()
+            if mod.has_toggle_content:
+                PartsManager.do_chenges(mod, active_mod_id)
+
+            mod_path = mod.get_str_path()
             regularpackages.add_child(XMLComment(mod.name))
             regularpackages.add_child(
                 XMLElement("package", {"path": f"{mod_path}/filelist.xml"})
             )
 
-        try:
-            user_config.unlink()
-            with open(str(user_config), "w", encoding="utf-8") as file:
-                file.write(obj.dump())
+        del active_mod_id
 
-        except Exception as e:
-            logger.error(f"Failed to write to {user_config}: {e}")
-            return
+        XMLBuilder.save(xml_obj, user_config_path)
+
+    @staticmethod
+    def _on_exit():
+        for mod in (
+            ModManager.active_mods + ModManager.inactive_mods
+        ):  # При неверном выходе пизда =)
+            game_path = AppConfig.get("barotrauma_dir", None)
+            if not game_path:
+                logger.error("Game path not set!")
+                return
+
+            game_path = Path(game_path)
+            if not game_path.exists():
+                logger.error(f"Game path does not exist!\n|Path: {game_path}")
+                return
+
+            user_config_path = game_path / "config_player.xml"
+            if not user_config_path.exists():
+                logger.error(
+                    f"config_player.xml does not exist!\n|Path: {user_config_path}"
+                )
+                return
+
+            user_config_path = user_config_path.resolve()
+            if not user_config_path.is_file():
+                logger.error(f"Resolved path is not a valid file: {user_config_path}")
+                return
+
+            xml_obj = XMLBuilder.load(user_config_path)
+            if xml_obj is None:
+                logger.error(f"Invalid config_player.xml\n|Path: {user_config_path}")
+                return
+
+            regularpackages = next(
+                (item for item in xml_obj.find_only_elements("regularpackages")), None
+            )
+            if regularpackages is None:
+                logger.error("No 'regularpackages' element found in config_player.xml.")
+                return
+
+            regularpackages.childrens.clear()
+
+            active_mod_id = set([mod.id for mod in ModManager.active_mods])
+            for mod in ModManager.active_mods:
+                mod_path = mod.get_str_path()
+                regularpackages.add_child(XMLComment(mod.name))
+                regularpackages.add_child(
+                    XMLElement("package", {"path": f"{mod_path}/filelist.xml"})
+                )
+
+            del active_mod_id
+
+            XMLBuilder.save(xml_obj, user_config_path)
+            if mod.has_toggle_content:
+                PartsManager.rollback_changes_no_thread(mod)
 
     @staticmethod
     def process_errors():
@@ -316,7 +379,9 @@ class ModManager:
                             )
 
                 elif dep.condition:
-                    if evaluate_condition(dep.condition, active_mods_ids):
+                    if process_condition(
+                        dep.condition, active_mods_ids=active_mods_ids
+                    ):
                         if dep.id not in active_mods_ids:
                             mod.metadata.errors.append(
                                 loc.get_string(
@@ -366,8 +431,8 @@ class ModManager:
 
         for mod in mods:
             for dep in mod.metadata.dependencies:
-                if dep.condition and not evaluate_condition(
-                    dep.condition, active_mod_ids
+                if dep.condition and not process_condition(
+                    dep.condition, active_mod_ids=active_mod_ids
                 ):
                     continue
 

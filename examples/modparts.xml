@@ -1,0 +1,26 @@
+<!--Example of modparts.xml for mods-->
+<?xml version="1.0" encoding="UTF-8"?>
+<modparts>
+    <!--
+    The <modparts> block defines specific files or resources that are part of the modification.
+    Each file entry specifies the associated mod ID, type, and its activation state.
+
+    Attributes:
+        - file: Path to the file/resource relative to the mod directory (e.g., %ModDir%/path/to/file).
+        - conditions: Condition under which this is run (e.g., ifhas('ModName or steamID')). Sep - | = or; & - and, () - Priority
+        - type: The type of resource being defined in filelist.xml. Common values include:
+            - "Item": Specifies an item resource.
+            - "Afflictions": Specifies affliction-related resources.
+            - Other types may depend on the specific mod framework.
+
+        - setState: Defines the activation state of the resource. Accepted values:
+            - "on": Enables the resource.
+            - "off": Disables the resource.
+    -->
+
+    <!-- Example: Enabling a specific item file for a mod -->
+    <file file="%ModDir%/path/to/item.file" conditions="ifhas('1234')" type="Item" setState="on" />
+
+    <!-- Example: Disabling afflictions for a mod -->
+    <file file="%ModDir%/path/to/affliction.file" conditions="ifhas('5721')" type="Afflictions" setState="off" />
+</modparts>

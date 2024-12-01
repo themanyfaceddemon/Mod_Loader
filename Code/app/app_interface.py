@@ -8,13 +8,13 @@ import requests
 import Code.dpg_tools as dpg_tools
 from Code.app_vars import AppConfig
 from Code.game import Game
+from Code.handlers import ModManager
 from Code.loc import Localization as loc
-from Code.package import ModManager
 
 from .barotrauma_window import BarotraumaWindow
 from .mod_window import ModWindow
 
-logger = logging.getLogger("App")
+logger = logging.getLogger(__name__)
 
 
 class AppInterface:
@@ -124,7 +124,7 @@ class AppInterface:
             callback=lambda: webbrowser.open(
                 "https://github.com/themanyfaceddemon/Barotrauma_Modding_Tool/releases/latest"
             ),
-            enabled=(not is_latest),
+            enabled=(is_latest is False),
         )
 
     @staticmethod

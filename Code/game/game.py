@@ -10,7 +10,7 @@ import requests
 
 from Code.app_vars import AppConfig
 
-logger = logging.getLogger("GameProcessor")
+logger = logging.getLogger(__name__)
 
 
 class Game:
