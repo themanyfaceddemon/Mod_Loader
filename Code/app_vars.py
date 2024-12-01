@@ -14,6 +14,14 @@ class AppConfig:
     _data_root: Path = _root / "Data"
     _user_data_path: Path = Path()
 
+    xml_system_dirs = [
+        "filelist.xml",
+        "metadata.xml",
+        "modparts.xml",
+        "file_list.xml",
+        "files_list.xml",
+    ]
+
     @classmethod
     def init(cls, debug=False) -> None:
         if platform.system() == "Windows":

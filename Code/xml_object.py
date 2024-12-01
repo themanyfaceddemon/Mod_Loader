@@ -1,6 +1,9 @@
+import logging
 import re
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional, Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 
 class XMLParserException(Exception):
@@ -26,42 +29,72 @@ class XMLParserException(Exception):
         )
 
 
-class XMLComment:
-    def __init__(self, text: str):
-        self.text = text
+class XMLBaseStruct:
+    def __init__(self) -> None:
+        self.parent: Optional[XMLElement] = None
+        self.index: Optional[int] = None
+
+
+class XMLComment(XMLBaseStruct):
+    def __init__(self, content: str) -> None:
+        super().__init__()
+        self.content = content
 
     def dump(
         self, indent: int = 0, indent_char: str = " ", single_line: bool = False, *args
     ) -> str:
         indent_str = "" if single_line else indent_char * indent
-        return f"{indent_str}<!-- {self.text} -->"
+        return f"{indent_str}<!-- {self.content} -->"
 
     def to_element(self) -> "XMLElement":
-        xml_obj = XMLElement.build_element(self.text)
+        xml_obj = XMLElement.build_element(self.content)
         if xml_obj is None:
             raise XMLParserException(
                 "Unable to convert comment to element: Empty content.",
-                content=self.text,
+                content=self.content,
             )
 
         return xml_obj
 
     def __repr__(self):
-        return f"XMLComment(text={repr(self.text)})"
+        return f"XMLComment(text={repr(self.content)})"
 
 
-class XMLElement:
-    def __init__(self, name: str, attributes: Optional[Dict[str, str]] = None):
-        self.name = name
+class XMLElement(XMLBaseStruct):
+    def __init__(self, tag: str, attributes: Optional[Dict[str, str]] = None):
+        super().__init__()
+        self.tag = tag
         self.attributes: Dict[str, str] = attributes if attributes is not None else {}
         self.childrens: List[Union["XMLElement", XMLComment]] = []
         self.content: str = ""
-        self.parent: Optional[XMLElement] = None
 
     def add_child(self, child: Union["XMLElement", XMLComment]):
+        child.parent = self
+        child.index = len(self.childrens)
         self.childrens.append(child)
-        if isinstance(child, XMLElement):
-            child.parent = self
+
+    @property
+    def count_of_childrens(self):
+        return len(self.childrens)
+
+    def __getitem__(self, index):
+        return self.childrens[index]
+
+    def __repr__(self):
+        return (
+            f"XMLElement(name={repr(self.tag)}, attributes={self.attributes}, "
+            f"children={self.childrens}, content={repr(self.content)})"
+        )
+
+    def replace(self, index: int, new_child: Union[XMLComment, "XMLElement"]) -> bool:
+        if index > len(self.childrens):
+            return False
+
+        if not isinstance(new_child, (XMLComment, XMLElement)):
+            return False
+
+        self.childrens[index] = new_child
+        return True
 
     def get_attribute_ignore_case(self, key: str, default=None):
         key_lower = key.lower()
@@ -94,13 +127,13 @@ class XMLElement:
     ) -> str:
         indent_str = "" if single_line else indent_char * indent
         attrs = " ".join(f'{key}="{value}"' for key, value in self.attributes.items())
-        opening_tag = f"<{self.name}{(' ' + attrs) if attrs else ''}>"
+        opening_tag = f"<{self.tag}{(' ' + attrs) if attrs else ''}>"
 
         if not self.childrens and not self.content:
-            return f"{indent_str}<{self.name}{(' ' + attrs) if attrs else ''} />"
+            return f"{indent_str}<{self.tag}{(' ' + attrs) if attrs else ''} />"
 
         if not self.childrens and inline_content and self.content:
-            return f"{indent_str}{opening_tag}{self.content}</{self.name}>"
+            return f"{indent_str}{opening_tag}{self.content}</{self.tag}>"
 
         result = f"{indent_str}{opening_tag}"
         if not single_line:
@@ -120,7 +153,7 @@ class XMLElement:
 
             result += child_str
 
-        closing_tag = f"</{self.name}>"
+        closing_tag = f"</{self.tag}>"
         if not single_line:
             result += indent_char * indent
 
@@ -186,7 +219,7 @@ class XMLElement:
                         )
 
                     tag_name = content[tag_start:tag_end].strip()
-                    if not stack or stack[-1].name != tag_name:
+                    if not stack or stack[-1].tag != tag_name:
                         raise XMLParserException(
                             "Unexpected closing tag",
                             tag=tag_name,
@@ -258,7 +291,7 @@ class XMLElement:
         if stack:
             raise XMLParserException(
                 "Unclosed tags remain",
-                tag=stack[-1].name,
+                tag=stack[-1].tag,
                 position=i,
                 line=line,
                 content=content,
@@ -271,14 +304,14 @@ class XMLElement:
         element: "XMLElement", pattern: str, exact_match: bool
     ) -> bool:
         if exact_match:
-            element_name_lower = element.name.lower()
+            element_name_lower = element.tag.lower()
             pattern_lower = pattern.lower()
             return element_name_lower == pattern_lower or pattern_lower in (
                 value.lower() for value in element.attributes.values()
             )
 
         compiled_pattern = re.compile(pattern, re.IGNORECASE)
-        return compiled_pattern.search(element.name) is not None or any(
+        return compiled_pattern.search(element.tag) is not None or any(
             compiled_pattern.search(value) for value in element.attributes.values()
         )
 
@@ -301,7 +334,7 @@ class XMLElement:
                     yield from match_element(child)
 
                 elif isinstance(child, XMLComment) and XMLElement._match_comment(
-                    child.text, pattern, exact_match
+                    child.content, pattern, exact_match
                 ):
                     yield child
 
@@ -316,7 +349,7 @@ class XMLElement:
                     yield from match_element(child)
 
                 elif isinstance(child, XMLComment) and XMLElement._match_comment(
-                    child.text, pattern, exact_match
+                    child.content, pattern, exact_match
                 ):
                     yield child
 
@@ -342,7 +375,7 @@ class XMLElement:
             previous_was_comment = False
             for child in element.childrens:
                 if isinstance(child, XMLComment) and XMLElement._match_comment(
-                    child.text, pattern, exact_match
+                    child.content, pattern, exact_match
                 ):
                     previous_was_comment = True
 
@@ -358,20 +391,71 @@ class XMLElement:
 
         yield from match_element(self)
 
-    def __repr__(self):
-        return (
-            f"XMLElement(name={repr(self.name)}, attributes={self.attributes}, "
-            f"children={self.childrens}, content={repr(self.content)})"
-        )
+    def find_between_comments(
+        self, comment1: str, comment2: str, exact_match: bool = False
+    ) -> Generator[
+        Tuple["XMLComment", List[Union["XMLElement", "XMLComment"]], "XMLComment"],
+        None,
+        None,
+    ]:  # type: ignore
+        start_comment = None
+        end_comment = None
+        elements_between = []
+        collecting = False
+
+        for element in self.childrens:
+            if (
+                isinstance(element, XMLComment)
+                and not collecting
+                and XMLElement._match_comment(element.content, comment1, exact_match)
+            ):
+                start_comment = element
+                collecting = True
+                elements_between = []
+
+            elif (
+                isinstance(element, XMLComment)
+                and collecting
+                and XMLElement._match_comment(element.content, comment2, exact_match)
+            ):
+                end_comment = element
+                yield start_comment, elements_between, end_comment  # type: ignore
+                collecting = False
+                start_comment = None
+                end_comment = None
+                elements_between = []
+
+            elif collecting:
+                elements_between.append(element)
 
 
 class XMLBuilder:
     @staticmethod
-    def build_form_file(
-        path: Union[Path, str], encoding: str = "utf-8-sig"
+    def load(
+        path: Union[Path, str, None], encoding: str = "utf-8-sig"
     ) -> Union[XMLElement, None]:
+        if path is None:
+            return None
+
         path = Path(path)
+        if not path.exists():
+            return None
+
         with open(path, "r", encoding=encoding) as file:
             content = file.read()
 
         return XMLElement.build_element(content)
+
+    @staticmethod
+    def save(
+        element: XMLElement, path: Union[Path, str], encoding: str = "utf-8"
+    ) -> None:
+        path = Path(path)
+        try:
+            with open(path, "w", encoding=encoding) as file:
+                file.write(element.dump())
+
+        except Exception as err:
+            logger.error(
+                f"Error writing object to file\n|Error:{err}\n|Path: {path}\n|Obj: {element!r}"
+            )

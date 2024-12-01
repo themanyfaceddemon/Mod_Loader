@@ -4,7 +4,7 @@ from typing import List, Optional, Set, Tuple
 
 from Code.xml_object import XMLElement
 
-logger = logging.getLogger("XMLIDParser")
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -20,7 +20,7 @@ class IDParserUnit:
 def extract_ids(obj: Optional[XMLElement]) -> IDParserUnit:
     parsed_ids = IDParserUnit.create_empty()
 
-    if not obj or obj.name.lower() in ["infotext", "infotexts"]:
+    if not obj or obj.tag.lower() in ["infotext", "infotexts"]:
         return parsed_ids
 
     _parse_object(obj, parsed_ids)
@@ -38,7 +38,7 @@ def _context_rule(context_type: Optional[str] = None):
     ):
         if context_type:
             for child in obj.iter_non_comment_childrens():
-                if obj.name.lower() == "override":
+                if obj.tag.lower() == "override":
                     stack.append((child, True, context_type))
                     continue
 
@@ -46,7 +46,7 @@ def _context_rule(context_type: Optional[str] = None):
 
         else:
             for child in obj.iter_non_comment_childrens():
-                if obj.name.lower() == "override":
+                if obj.tag.lower() == "override":
                     stack.append((child, True, current_context))
                     continue
 
@@ -80,7 +80,7 @@ def _id_rule(prefix: str, id_field: str = "identifier"):
         id_parser_unit: IDParserUnit,
         current_context: Optional[str],
     ):
-        identifier = obj.attributes.get(id_field, obj.name)
+        identifier = obj.attributes.get(id_field, obj.tag)
         full_id = f"{prefix}.{identifier}"
 
         if is_override:
@@ -105,10 +105,10 @@ def _detect_animation(obj: XMLElement) -> Optional[str]:
         return None
 
     if animation_type in ["SwimSlow", "SwimFast"]:
-        return f"WaterAnimation.{obj.name}"
+        return f"WaterAnimation.{obj.tag}"
 
     if animation_type in ["Walk", "Run", "Crouch"]:
-        return f"GroundAnimation.{obj.name}"
+        return f"GroundAnimation.{obj.tag}"
 
     return None
 
@@ -217,7 +217,7 @@ def _parse_object(
 
     while processing_stack:
         current_obj, is_override, current_context = processing_stack.pop()
-        obj_name_lower = current_obj.name.lower()
+        obj_name_lower = current_obj.tag.lower()
 
         if obj_name_lower == "override":
             for child in current_obj.iter_non_comment_childrens():
@@ -262,4 +262,4 @@ def _handle_animation(obj: XMLElement, is_override: bool, id_parser_unit: IDPars
             id_parser_unit.add_id.add(animation_id)
 
     else:
-        logger.warning(f"No rule found for object: {obj.name} | {obj.name.lower()}")
+        logger.warning(f"No rule found for object: {obj.tag} | {obj.tag.lower()}")

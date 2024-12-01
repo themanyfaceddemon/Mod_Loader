@@ -11,8 +11,8 @@ from colorama import Fore, Style, init
 from Code.app import App
 from Code.app_vars import AppConfig
 from Code.game import Game
+from Code.handlers import ModManager
 from Code.loc import Localization as loc
-from Code.package import ModManager
 
 
 def show_error_message(title, message):

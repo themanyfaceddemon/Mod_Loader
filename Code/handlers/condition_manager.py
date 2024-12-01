@@ -1,5 +1,5 @@
-from typing import Callable, Dict, List
 import re
+from typing import Callable, Dict, List, Optional
 
 condition_handlers: Dict[str, Callable[..., bool]] = {}
 
@@ -12,7 +12,10 @@ def register_condition_handler(prefix: str):
     return decorator
 
 
-def evaluate_condition(condition: str, **kwargs) -> bool:
+def process_condition(condition: Optional[str], **kwargs) -> bool:
+    if not condition:
+        return False
+
     def eval_single(cond: str) -> bool:
         cond = cond.strip()
         for prefix, handler in condition_handlers.items():

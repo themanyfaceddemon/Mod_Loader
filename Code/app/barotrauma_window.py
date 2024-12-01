@@ -6,10 +6,10 @@ import dearpygui.dearpygui as dpg
 
 from Code.app_vars import AppConfig
 from Code.game import Game
+from Code.handlers import ModManager
 from Code.loc import Localization as loc
-from Code.package import ModManager
 
-logger = logging.getLogger("BarotraumaPathProcessor")
+logger = logging.getLogger(__name__)
 
 
 class BarotraumaWindow:
