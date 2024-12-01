@@ -13,6 +13,7 @@ from .condition_manager import process_condition
 logger = logging.getLogger(__name__)
 
 
+# TODO: Это бы рефакторнуть разок
 class PartsManager:
     # BTM: conditions="", setState="on/off"
     @staticmethod
@@ -183,8 +184,118 @@ class PartsManager:
 
     @staticmethod
     def _fix_xml_by_commits(file_path: Path):
-        pass
+        xml_obj = XMLBuilder.load(file_path)
+        if xml_obj is None:
+            return
+
+        for com_start, objs, com_end in xml_obj.find_between_comments(
+            "BTM:*:start", "BTM:*end"
+        ):
+            match = re.search(r"setState=(.*?)", com_start.content)
+            if match:
+                set_state_to = (
+                    True if match.group(1).lower() in ["on", "1", "true"] else False
+                )
+            else:
+                logger.error(
+                    f"Error in searching for set state value\n|Path: {file_path}"
+                )
+                continue
+
+            set_state_to = not set_state_to
+            for obj in objs:
+                if obj.index is None:
+                    continue
+
+                if set_state_to:
+                    if isinstance(obj, XMLElement):
+                        continue
+
+                else:
+                    if isinstance(obj, XMLComment):
+                        continue
+
+                try:
+                    if isinstance(obj, XMLComment):
+                        xml_obj.replace(obj.index, obj.to_element())
+
+                    else:
+                        xml_obj.replace(obj.index, obj.to_comment())
+
+                except Exception:
+                    continue
+
+        XMLBuilder.save(xml_obj, file_path)
 
     @staticmethod
     def _fix_xml_by_config(mod_path: Path):
-        pass
+        xml_obj = XMLBuilder.load((mod_path / "modparts.xml"))
+        xml_file_list = XMLBuilder.load((mod_path / "filelist.xml"))
+
+        if not all((xml_obj, xml_file_list)):
+            return
+
+        for action in xml_obj.iter_non_comment_childrens():  # type: ignore
+            path_to_file = action.get_attribute_ignore_case("file")
+            cond_type = action.get_attribute_ignore_case("type")
+            set_to = action.get_attribute_ignore_case("setState")
+
+            if not all((path_to_file, cond_type, set_to)):
+                continue
+
+            for item in xml_file_list.childrens:  # type: ignore # TODO Think about optimization
+                if isinstance(item, XMLComment):
+                    tag_item_start = item.content.find("<")
+                    if tag_item_start == -1:
+                        continue
+
+                    tag_item = item.content[
+                        tag_item_start : item.content.find(" ", tag_item_start)
+                    ]
+
+                    match = re.search(r"file=(.*?)", item.content)
+                    if match:
+                        item_file = match.group(1)
+
+                    else:
+                        continue
+
+                    match = re.search(r"setState=(.*?)", item.content)
+                    if match:
+                        set_to = (
+                            True if match.group(1).lower() in ["true", "on"] else False
+                        )
+
+                    else:
+                        continue
+
+                else:
+                    tag_item = item.tag
+                    item_file = item.get_attribute_ignore_case("file")
+                    set_to = item.get_attribute_ignore_case("setState")
+                    if not all((tag_item, item_file, set_to)):
+                        continue
+
+                    set_to = True if set_to.lower() in ["true", "on"] else False  # type: ignore
+
+                set_to = not set_to
+                if set_to:
+                    if isinstance(item, XMLElement):
+                        continue
+
+                else:
+                    if isinstance(item, XMLComment):
+                        continue
+
+                if tag_item == cond_type and item_file == path_to_file:
+                    try:
+                        if isinstance(item, XMLComment):
+                            xml_file_list.replace(item.index, item.to_element())  # type: ignore
+
+                        else:
+                            xml_file_list.replace(item.index, item.to_comment())  # type: ignore
+
+                    except Exception:
+                        continue
+
+        XMLBuilder.save(xml_file_list, (mod_path / "filelist.xml"))  # type: ignore
