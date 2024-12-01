@@ -6,5 +6,4 @@ label-valid-path = Верный путь?
 search-exp-game = Идёт поиск...
 search-exp-game-done = Выберите путь к вашей игре Barotrauma:
 search-exp-game-none = К сожалению, ничего не найдено.
-warning-exp-game-1 = Внимание: Эта функция является экспериментальной и может работать нестабильно.
-warning-exp-game-2 = Поиск начнётся после вашего подтверждения
+warning-exp-game-1 = Поиск начнётся после вашего подтверждения

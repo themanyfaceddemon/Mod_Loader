@@ -6,5 +6,4 @@ label-valid-path = Ist das Verzeichnis gültig?
 search-exp-game = Suche...
 search-exp-game-done = Wähle das Verzeichnis deiner Barotrauma-Installation:
 search-exp-game-none = Sorry, nichts gefunden.
-warning-exp-game-1 = Warnung: Diese Funktion ist experimentell und funktioniert eventuell nicht einwandfrei.
-warning-exp-game-2 = Die Suche wird nach Bestätigung gestartet.
+warning-exp-game-1 = Die Suche wird nach Bestätigung gestartet.

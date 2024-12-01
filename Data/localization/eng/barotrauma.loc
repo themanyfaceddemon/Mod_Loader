@@ -6,5 +6,4 @@ label-valid-path = Is the path valid?
 search-exp-game = Searching...
 search-exp-game-done = Select the path to your Barotrauma game:
 search-exp-game-none = Sorry, nothing found.
-warning-exp-game-1 = Warning: This feature is experimental and may not work reliably.
-warning-exp-game-2 = Search will start after your confirmation
+warning-exp-game-1 = Search will start after your confirmation
