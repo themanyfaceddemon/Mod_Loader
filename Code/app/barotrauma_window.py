@@ -57,18 +57,17 @@ class BarotraumaWindow:
                 )
 
             dpg.add_separator()
+            dpg.add_button(
+                label=loc.get_string("btn-search-game-fold"),
+                callback=BarotraumaWindow._exp_game,
+            )
 
+            dpg.add_separator()
             dpg.add_button(
                 label=loc.get_string("base-close"),
                 tag="baro_window_close_bth",
                 callback=lambda: dpg.delete_item("baro_window"),
             )
-
-            if AppConfig.get("experimental", False):
-                dpg.add_button(
-                    label=loc.get_string("btn-experimental-search-game-fold"),
-                    callback=BarotraumaWindow._exp_game,
-                )
 
             AppInterface.resize_windows()
 
@@ -146,10 +145,7 @@ class BarotraumaWindow:
             no_collapse=True,
             no_title_bar=True,
         ):
-            dpg.add_text(
-                loc.get_string("warning-exp-game-1"), color=(255, 100, 100), wrap=0
-            )
-            dpg.add_text(loc.get_string("warning-exp-game-2"), wrap=0)
+            dpg.add_text(loc.get_string("warning-exp-game-1"), wrap=0)
             dpg.add_separator()
             with dpg.group(horizontal=True):
                 dpg.add_button(

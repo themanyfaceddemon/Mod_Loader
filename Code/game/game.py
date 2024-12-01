@@ -1,8 +1,11 @@
 import logging
 import os
 import platform
+import queue
 import string
 import subprocess
+import time
+from concurrent.futures import ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import List
 
@@ -119,7 +122,6 @@ class Game:
                 for drive in string.ascii_uppercase
                 if Path(f"{drive}:\\").exists() and os.access(f"{drive}:\\", os.R_OK)
             ]
-
         else:
             drives = [
                 Path(mount_point)
@@ -129,39 +131,64 @@ class Game:
 
         logger.debug(f"Found drives: {len(drives)}")
 
-        found_paths: List[Path] = []
+        task_queue = queue.Queue()
 
         for drive in drives:
-            logger.debug(f"Processing drive: {drive}")
-            dirs_to_visit = [drive]
+            task_queue.put(drive)
 
-            while dirs_to_visit:
-                current_dir = dirs_to_visit.pop()
-                logger.debug(f"Processing directory: {current_dir}")
+        found_paths: List[Path] = []
 
-                if Game._is_system_directory(current_dir):
-                    logger.debug(f"Ignoring system folder: {current_dir}")
-                    continue
-
+        def process_directory():
+            nonlocal found_paths
+            while not task_queue.empty():
                 try:
-                    for entry in current_dir.iterdir():
-                        if entry.is_dir():
-                            if Game._should_ignore_directory(
-                                entry, current_dir, game_name
-                            ):
-                                continue
+                    current_dir = task_queue.get(timeout=3)
+                    logger.debug(f"Processing directory: {current_dir}")
+                    dirs_to_visit = [current_dir]
 
-                            if entry.name.lower() == game_name:
-                                logger.debug(f"Match found: {entry}")
-                                found_paths.append(entry)
-                            else:
-                                dirs_to_visit.append(entry)
+                    while dirs_to_visit:
+                        dir_to_visit = dirs_to_visit.pop()
+                        logger.debug(f"Processing directory: {dir_to_visit}")
 
-                except PermissionError:
-                    logger.debug(f"Access to directory {current_dir} denied")
+                        if Game._is_system_directory(dir_to_visit):
+                            logger.debug(f"Skipping system folder: {dir_to_visit}")
+                            continue
 
-                except Exception as e:
-                    logger.debug(f"Error processing directory {current_dir}: {e}")
+                        try:
+                            for entry in dir_to_visit.iterdir():
+                                if entry.is_dir():
+                                    if Game._should_ignore_directory(
+                                        entry, dir_to_visit, game_name
+                                    ):
+                                        continue
+
+                                    if entry.name.lower() == game_name:
+                                        logger.debug(f"Match found: {entry}")
+                                        found_paths.append(entry)
+                                    else:
+                                        dirs_to_visit.append(entry)
+                        except PermissionError:
+                            logger.debug(f"Access to directory {dir_to_visit} denied")
+                        except Exception as e:
+                            logger.debug(
+                                f"Error processing directory {dir_to_visit}: {e}"
+                            )
+
+                except queue.Empty:
+                    return
+
+        start_time = time.time()
+
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            while not task_queue.empty():
+                futures.append(executor.submit(process_directory))
+
+            wait(futures)
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.debug(f"Total time taken: {elapsed_time:.2f} seconds")
 
         executable_name = (
             "barotrauma.exe" if platform.system() == "Windows" else "barotrauma"
