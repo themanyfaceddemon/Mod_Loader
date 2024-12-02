@@ -12,7 +12,7 @@ from colorama import Fore, Style, init
 from Code.app import App
 from Code.app_vars import AppConfig
 from Code.game import Game
-from Code.handlers import HashManager, ModManager
+from Code.handlers import ModManager
 from Code.loc import Localization as loc
 
 
@@ -99,7 +99,7 @@ def args_no_gui(
 
 def main(debug: bool) -> None:
     logging.debug("Starting program...")
-    initialize_components(debug, AppConfig, HashManager, loc, ModManager)
+    initialize_components(debug, AppConfig, loc, ModManager)
     logging.debug("Initialization complete. Program is ready to run.")
 
     app_instance = App()

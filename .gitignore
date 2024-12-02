@@ -21,6 +21,9 @@ venv.bak/
 # Logs
 [Ll]ogs
 
+# Hash
+Data/.hash/*
+
 # Build
 dist/*
 build/*

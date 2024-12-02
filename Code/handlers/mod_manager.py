@@ -40,7 +40,7 @@ class ModManager:
             inactive_mods_dir = Path(inactive_mods_dir)
             ModManager.load_inactive_mods(inactive_mods_dir)
 
-        ModManager.load_inactive_mods((game_path / "LocalMods"))
+        ModManager.load_inactive_mods((game_path / "LocalMods"), True)
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -93,7 +93,7 @@ class ModManager:
             mod.load_order = index
 
     @staticmethod
-    def load_inactive_mods(path_to_all_mods: Path):
+    def load_inactive_mods(path_to_all_mods: Path, set_to_local: bool = False):
         if not path_to_all_mods.exists():
             logger.error(f"Dir not exists!\n|Path: {path_to_all_mods}")
             return
@@ -126,6 +126,9 @@ class ModManager:
                 if mod is not None:
                     if mod.id in all_mods_ids:
                         continue
+
+                    if set_to_local:
+                        mod.local = True
 
                     ModManager.inactive_mods.append(mod)
 

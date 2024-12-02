@@ -127,6 +127,66 @@ class AppInterface:
             enabled=(is_latest is False),
         )
 
+        if AppConfig.get("debug", False):
+            dpg.add_menu_item(
+                label="Console",
+                parent="main_view_bar",
+                callback=AppInterface._setup_console,
+            )
+
+    @staticmethod
+    def _process_command(sender, app_data, user_data):
+        try:
+            command = app_data.strip()
+            if command:
+                try:
+                    exec_result = eval(command, globals())
+                    if exec_result is not None:
+                        AppInterface._append_console_output(
+                            f"> {command}\n{exec_result}"
+                        )
+
+                    else:
+                        AppInterface._append_console_output(f"> {command}")
+
+                except SyntaxError:
+                    exec(command, globals())
+                    AppInterface._append_console_output(f"> {command}")
+
+        except Exception as e:
+            AppInterface._append_console_output(f"Error: {e}")
+
+        finally:
+            dpg.set_value(sender, "")
+            dpg.focus_item(sender)
+
+    @staticmethod
+    def _append_console_output(text):
+        dpg.add_text(text, parent="console_output", wrap=0)
+        dpg.set_y_scroll("console_window", dpg.get_y_scroll_max("console_window"))
+
+    @staticmethod
+    def _setup_console():
+        if dpg.does_item_exist("debug_console"):
+            dpg.delete_item("debug_console")
+
+        with dpg.window(
+            label="Debug Console", tag="debug_console", width=1, height=1
+        ):
+            with dpg.child_window(
+                label="Output", tag="console_window", autosize_x=True, autosize_y=True
+            ):
+                with dpg.group(tag="console_output"):
+                    dpg.add_text("Debug Console Initialized")
+
+            dpg.add_input_text(
+                label="Command",
+                on_enter=True,
+                callback=AppInterface._process_command,
+            )
+
+        AppInterface.resize_windows()
+
     @staticmethod
     def resize_windows():
         viewport_width = dpg.get_viewport_width() - 40
@@ -138,6 +198,7 @@ class AppInterface:
             "exp_game",
             "game_config_window",
             "cac_window",
+            "debug_console",
         ]
         for item in windows:
             if dpg.does_item_exist(item):
@@ -184,7 +245,7 @@ class AppInterface:
             dpg.focus_item("cac_window")
             return
 
-        contributors_path = AppConfig.get_data_root() / "contributors.json"
+        contributors_path = AppConfig.get_root_path() / "contributors.json"
 
         try:
             with open(contributors_path, "r", encoding="utf-8") as f:

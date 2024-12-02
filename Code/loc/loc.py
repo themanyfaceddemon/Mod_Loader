@@ -21,9 +21,7 @@ class Localization:
     @classmethod
     def init(cls) -> None:
         localization_path = (
-            Path(AppConfig.get_data_root())
-            / "localization"
-            / AppConfig.get("lang", "eng")  # type: ignore
+            AppConfig.get_root_path() / "localization" / AppConfig.get("lang", "eng")  # type: ignore
         )
         cls.load_translations(localization_path)
 
