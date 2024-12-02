@@ -25,6 +25,8 @@ class AppConfig:
 
     @classmethod
     def init(cls, debug=False) -> None:
+        AppConfig.get_hash_path().mkdir(parents=True, exist_ok=True)
+
         if platform.system() == "Windows":
             cls._user_data_path = (
                 Path.home() / "AppData" / "Roaming" / "BarotraumaModdingTool"
@@ -70,16 +72,16 @@ class AppConfig:
             json.dump(cls.user_config, file, indent=4, sort_keys=True)
 
     @classmethod
-    def get_data_root(cls) -> Path:
-        return cls._data_root
-
-    @classmethod
     def get(cls, key: str, default=None) -> Optional[Any]:
         return cls.user_config.get(key, default)
 
     @classmethod
     def set(cls, key: str, value: Any) -> None:
         cls.user_config[key] = value
+
+    @classmethod
+    def get_root_path(cls) -> Path:
+        return cls._data_root
 
     @classmethod
     def get_game_path(cls) -> Optional[Path]:
@@ -113,6 +115,10 @@ class AppConfig:
             return None
 
         return Path(gp, "LocalMods")
+
+    @classmethod
+    def get_hash_path(cls) -> Path:
+        return cls._data_root / ".hash"
 
     @classmethod
     def set_steam_mods_path(cls) -> None:

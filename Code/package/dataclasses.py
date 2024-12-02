@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Set
@@ -183,19 +184,14 @@ class ModUnit(Identifier):
         return False
 
     @staticmethod
-    def build_by_path(path: (Path | str)) -> Optional["ModUnit"]:
+    def build(path: (Path | str)) -> Optional["ModUnit"]:
         try:
             path = Path(path)
 
             obj = ModUnit.create_empty()
 
-            if path.parts[0] == "LocalMods":
+            if "LocalMods" in path.parts:
                 obj.local = True
-                new_path = AppConfig.get("barotrauma_dir", None)
-                if new_path is None:
-                    raise ValueError("Game dir not set!")
-
-                path = Path(new_path / path)
 
             ModUnit.parse_filelist(obj, path)
             if obj.corepackage:
@@ -255,29 +251,35 @@ class ModUnit(Identifier):
     def parse_files(obj: "ModUnit", path: Path) -> None:
         xml_files_paths = path.rglob("*.[Xx][Mm][Ll]")
 
-        for xml_file_path in xml_files_paths:
+        with ThreadPoolExecutor() as executor:
+            for xml_file_path in xml_files_paths:
+                executor.submit(ModUnit._process_xml_file, xml_file_path, obj)
+
+    @staticmethod
+    def _process_xml_file(xml_file_path: Path, obj: "ModUnit"):
+        try:
             if xml_file_path.name.lower() == "modparts.xml":
                 obj.has_toggle_content = True
-                continue
+                return
 
             if xml_file_path.name.lower() in AppConfig.xml_system_dirs:
-                continue
+                return
 
-            try:
-                xml_obj = XMLBuilder.load(xml_file_path)
-                if xml_obj is None:
-                    logger.warning(f"File {xml_file_path} is empty")
-                    continue
+            xml_obj = XMLBuilder.load(xml_file_path)
+            if xml_obj is None:
+                logger.warning(f"File {xml_file_path} is empty")
+                return
 
-                id_parser_unit = extract_ids(xml_obj)
-                obj.add_id.update(id_parser_unit.add_id)
-                obj.override_id.update(id_parser_unit.override_id)
-                if not obj.has_toggle_content:
-                    for elem in xml_obj.find_only_comments("BTM:*"):
-                        obj.has_toggle_content = True
+            id_parser_unit = extract_ids(xml_obj)
+            obj.add_id.update(id_parser_unit.add_id)
+            obj.override_id.update(id_parser_unit.override_id)
 
-            except Exception as err:
-                logger.error(str(err) + f"\n|Mod: {obj!r}")
+            if not obj.has_toggle_content:
+                for elem in xml_obj.find_only_comments("BTM:*"):
+                    obj.has_toggle_content = True
+
+        except Exception as err:
+            logger.error(str(err) + f"\n|Mod: {obj!r}")
 
     @staticmethod
     def parse_metadata(obj: "ModUnit", path: Path) -> None:
@@ -286,7 +288,7 @@ class ModUnit(Identifier):
         if not metadata_path.exists():
             search_pattern = f"{obj.id}.xml"
             found_files = list(
-                (AppConfig.get_data_root() / "InternalLibrary").rglob(search_pattern)
+                (AppConfig.get_root_path() / "InternalLibrary").rglob(search_pattern)
             )
 
             if found_files:
@@ -366,7 +368,7 @@ class ModUnit(Identifier):
         if not metadata_path.exists():
             search_pattern = f"{self.id}.xml"
             found_files = list(
-                (AppConfig.get_data_root() / "InternalLibrary").rglob(search_pattern)
+                (AppConfig.get_root_path() / "InternalLibrary").rglob(search_pattern)
             )
 
             if found_files:

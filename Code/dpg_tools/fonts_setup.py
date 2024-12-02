@@ -6,7 +6,7 @@ from Code.app_vars import AppConfig
 class FontManager:
     @staticmethod
     def load_fonts():
-        font_base_path = AppConfig.get_data_root() / "fonts"
+        font_base_path = AppConfig.get_root_path() / "fonts"
 
         with dpg.font_registry():
             with dpg.font(

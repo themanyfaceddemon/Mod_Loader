@@ -66,7 +66,14 @@ class ModManager:
         def process_package(index, path):
             try:
                 path = Path(path).parent
-                mod = ModUnit.build_by_path(path)
+                if path.parts[0] == "LocalMods":
+                    new_path = AppConfig.get("barotrauma_dir", None)
+                    if new_path is None:
+                        raise ValueError("Game dir not set!")
+
+                    path = Path(new_path / path)
+
+                mod = ModUnit.build(path)
                 if mod is None:
                     return None
 
@@ -104,9 +111,16 @@ class ModManager:
             if path.is_dir() and not path.name.startswith(".")
         ]
 
-        def process_package(path):
+        def process_package(path: Path):
             try:
-                mod = ModUnit.build_by_path(path)
+                if path.parts[0] == "LocalMods":
+                    new_path = AppConfig.get("barotrauma_dir", None)
+                    if new_path is None:
+                        raise ValueError("Game dir not set!")
+
+                    path = Path(new_path / path)
+
+                mod = ModUnit.build(path)
                 if mod is None:
                     return None
 
