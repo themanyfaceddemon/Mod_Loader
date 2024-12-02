@@ -40,7 +40,7 @@ class ModManager:
             inactive_mods_dir = Path(inactive_mods_dir)
             ModManager.load_inactive_mods(inactive_mods_dir)
 
-        ModManager.load_inactive_mods((game_path / "LocalMods"), True)
+        ModManager.load_inactive_mods((game_path / "LocalMods"))
 
     @staticmethod
     def load_active_mods(path_to_config_player: Path):
@@ -66,7 +66,14 @@ class ModManager:
         def process_package(index, path):
             try:
                 path = Path(path).parent
-                mod = ModUnit.build_by_path(path)
+                if path.parts[0] == "LocalMods":
+                    new_path = AppConfig.get("barotrauma_dir", None)
+                    if new_path is None:
+                        raise ValueError("Game dir not set!")
+
+                    path = Path(new_path / path)
+
+                mod = ModUnit.build(path)
                 if mod is None:
                     return None
 
@@ -93,7 +100,7 @@ class ModManager:
             mod.load_order = index
 
     @staticmethod
-    def load_inactive_mods(path_to_all_mods: Path, set_to_local: bool = False):
+    def load_inactive_mods(path_to_all_mods: Path):
         if not path_to_all_mods.exists():
             logger.error(f"Dir not exists!\n|Path: {path_to_all_mods}")
             return
@@ -104,9 +111,16 @@ class ModManager:
             if path.is_dir() and not path.name.startswith(".")
         ]
 
-        def process_package(path):
+        def process_package(path: Path):
             try:
-                mod = ModUnit.build_by_path(path)
+                if path.parts[0] == "LocalMods":
+                    new_path = AppConfig.get("barotrauma_dir", None)
+                    if new_path is None:
+                        raise ValueError("Game dir not set!")
+
+                    path = Path(new_path / path)
+
+                mod = ModUnit.build(path)
                 if mod is None:
                     return None
 
@@ -126,9 +140,6 @@ class ModManager:
                 if mod is not None:
                     if mod.id in all_mods_ids:
                         continue
-
-                    if set_to_local:
-                        mod.local = True
 
                     ModManager.inactive_mods.append(mod)
 

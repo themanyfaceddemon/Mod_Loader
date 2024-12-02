@@ -184,19 +184,14 @@ class ModUnit(Identifier):
         return False
 
     @staticmethod
-    def build_by_path(path: (Path | str)) -> Optional["ModUnit"]:
+    def build(path: (Path | str)) -> Optional["ModUnit"]:
         try:
             path = Path(path)
 
             obj = ModUnit.create_empty()
 
-            if path.parts[0] == "LocalMods":
+            if "LocalMods" in path.parts:
                 obj.local = True
-                new_path = AppConfig.get("barotrauma_dir", None)
-                if new_path is None:
-                    raise ValueError("Game dir not set!")
-
-                path = Path(new_path / path)
 
             ModUnit.parse_filelist(obj, path)
             if obj.corepackage:
