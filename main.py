@@ -3,16 +3,16 @@ import logging
 import os
 import platform
 import sys
-from pathlib import Path
 from tkinter import Tk, messagebox
 from traceback import TracebackException
+from typing import Any, Type
 
 from colorama import Fore, Style, init
 
 from Code.app import App
 from Code.app_vars import AppConfig
 from Code.game import Game
-from Code.handlers import ModManager
+from Code.handlers import HashManager, ModManager
 from Code.loc import Localization as loc
 
 
@@ -50,33 +50,20 @@ def configure_logging(debug: bool):
     logging.basicConfig(level=log_level, handlers=[console_handler], encoding="utf-8")
 
 
-def init_app_config(debug: bool) -> None:
-    logging.debug("Initializing AppConfig...")
-    AppConfig.init(debug)
-    logging.debug("AppConfig initialization complete.")
+def initialize_components(debug: bool, *components: Type[Any]) -> None:
+    for component in components:
+        logging.debug(f"Initializing {component.__name__}...")
+        init_method = getattr(component, "init", None)
+        if callable(init_method):
+            init_method(
+                debug
+            ) if "debug" in init_method.__code__.co_varnames else init_method()
+            logging.debug(f"{component.__name__} initialized successfully.")
 
-
-def load_mods() -> None:
-    logging.debug("Loading mods and game configs...")
-    ModManager.init()
-    logging.debug("Mods and game configs loaded successfully.")
-
-
-def load_translations() -> None:
-    logging.debug("Loading translations...")
-    localization_path = (
-        Path(AppConfig.get_data_root()) / "localization" / AppConfig.get("lang", "eng")  # type: ignore
-    )
-    loc.load_translations(localization_path)
-    logging.debug("Translations loaded successfully.")
-
-
-def init_classes(debug: bool) -> None:
-    logging.debug("Starting application initialization...")
-    init_app_config(debug)
-    load_mods()
-    load_translations()
-    logging.debug("Application initialization complete.")
+        else:
+            raise AttributeError(
+                f"{component.__name__} does not have a callable 'init' method."
+            )
 
 
 def args_no_gui(
@@ -112,7 +99,7 @@ def args_no_gui(
 
 def main(debug: bool) -> None:
     logging.debug("Starting program...")
-    init_classes(debug)
+    initialize_components(debug, AppConfig, HashManager, loc, ModManager)
     logging.debug("Initialization complete. Program is ready to run.")
 
     app_instance = App()

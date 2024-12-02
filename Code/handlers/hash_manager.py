@@ -2,11 +2,17 @@ import hashlib
 import pickle
 from pathlib import Path
 
-# from Code.app_vars import AppConfig
+from Code.app_vars import AppConfig
+
 # from Code.xml_object import XMLElement
 
 
 class HashManager:
+    @staticmethod
+    def init():
+        hash_root = AppConfig.get_data_root() / ".hash"
+        hash_root.mkdir(parents=True, exist_ok=True)
+
     # @staticmethod
     # def update_loaded_mods(path: Path, loaded_mods: XMLElement):
     #    pass

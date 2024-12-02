@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import Dict, Optional
 
+from Code.app_vars import AppConfig
+
 """
 Пример .loc
 main-app-name={form-apple} {sex-apple} # комментарий
@@ -15,6 +17,15 @@ main-app-name={form-apple} {sex-apple} # комментарий
 
 class Localization:
     _translations: Dict[str, str] = {}
+
+    @classmethod
+    def init(cls) -> None:
+        localization_path = (
+            Path(AppConfig.get_data_root())
+            / "localization"
+            / AppConfig.get("lang", "eng")  # type: ignore
+        )
+        cls.load_translations(localization_path)
 
     @classmethod
     def clear_load_translation(cls) -> None:
