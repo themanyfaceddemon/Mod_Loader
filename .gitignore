@@ -15,14 +15,8 @@ ENV/
 env.bak/
 venv.bak/
 
-# User config
-[Dd]ata/user_config.json
-
-# Logs
-[Ll]ogs
-
-# Hash
-Data/.hash/*
+# Data
+Data/.*
 
 # Build
 dist/*
