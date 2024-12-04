@@ -1,9 +1,9 @@
 import logging
-import os
 import platform
 import subprocess
 import tarfile
 import zipfile
+from pathlib import Path
 
 import requests
 
@@ -21,15 +21,12 @@ class SteamCMDInstaller:
     _ARCHIVE_NAME = (
         "steamcmd.zip" if platform.system() == "Windows" else "steamcmd.tar.gz"
     )
+    _EXEC_NAME = "steamcmd.exe" if platform.system() == "Windows" else "steamcmd.sh"
 
     @classmethod
     def _run_steamcmd(cls):
         install_dir = AppConfig.get_steam_cmd_path()
-        steamcmd_path = (
-            install_dir / "steamcmd.exe"
-            if platform.system() == "Windows"
-            else install_dir / "steamcmd.sh"
-        )
+        steamcmd_path = install_dir / cls._EXEC_NAME
 
         if not steamcmd_path.exists():
             raise RuntimeError(
@@ -47,6 +44,10 @@ class SteamCMDInstaller:
         install_dir = AppConfig.get_steam_cmd_path()
         archive_path = install_dir / cls._ARCHIVE_NAME
 
+        if (install_dir / cls._EXEC_NAME).exists():
+            logger.info("SteamCMD archive already exists. Skipping download.")
+            return archive_path
+
         url = cls._DOWNLOAD_URL.get(platform.system(), None)
         if url is None:
             raise RuntimeError("Unknown operating system.")
@@ -62,17 +63,21 @@ class SteamCMDInstaller:
         return archive_path
 
     @staticmethod
-    def _extract_archive(archive_path, install_dir="steamcmd"):
-        if archive_path.endswith(".zip"):
+    def _extract_archive(archive_path: Path):
+        install_dir = str(AppConfig.get_steam_cmd_path())
+        archive_path_str = str(archive_path)
+        if archive_path_str.endswith(".zip"):
             with zipfile.ZipFile(archive_path, "r") as zip_ref:
                 zip_ref.extractall(install_dir)
 
-        elif archive_path.endswith(".tar.gz"):
+        elif archive_path_str.endswith(".tar.gz"):
             with tarfile.open(archive_path, "r:gz") as tar_ref:
                 tar_ref.extractall(install_dir)
 
         else:
             raise Exception("Unknown archive format.")
+
+        archive_path.unlink()
 
     @classmethod
     def install(cls):
