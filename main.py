@@ -152,6 +152,9 @@ if __name__ == "__main__":
                 "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
             )
         del platform_name
+        
+        from Code.steam_cmd import SteamCMDInstaller
+        SteamCMDInstaller.install()
 
         if args.ngui:
             args_no_gui(args.sg, args.apath, args.alua, args.si, args.pbmt)
