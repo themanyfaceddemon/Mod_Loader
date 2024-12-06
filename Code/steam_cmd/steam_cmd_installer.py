@@ -21,20 +21,18 @@ class SteamCMDInstaller:
     _ARCHIVE_NAME = (
         "steamcmd.zip" if platform.system() == "Windows" else "steamcmd.tar.gz"
     )
-    _EXEC_NAME = "steamcmd.exe" if platform.system() == "Windows" else "steamcmd.sh"
 
     @classmethod
     def _run_steamcmd(cls):
-        install_dir = AppConfig.get_steam_cmd_path()
-        steamcmd_path = install_dir / cls._EXEC_NAME
+        exec_file = AppConfig.get_steam_cmd_exec()
 
-        if not steamcmd_path.exists():
+        if not exec_file.exists():
             raise RuntimeError(
                 "steamcmd not found. Please ensure SteamCMD is installed."
             )
 
         try:
-            subprocess.run([str(steamcmd_path), "+quit"], check=True)
+            subprocess.run([str(exec_file), "+quit"], check=True)
 
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Error running SteamCMD: {e}")
@@ -44,7 +42,7 @@ class SteamCMDInstaller:
         install_dir = AppConfig.get_steam_cmd_path()
         archive_path = install_dir / cls._ARCHIVE_NAME
 
-        if (install_dir / cls._EXEC_NAME).exists():
+        if AppConfig.get_steam_cmd_exec().exists():
             logger.info("SteamCMD archive already exists. Skipping download.")
             return archive_path
 
@@ -62,8 +60,8 @@ class SteamCMDInstaller:
 
         return archive_path
 
-    @staticmethod
-    def _extract_archive(archive_path: Path):
+    @classmethod
+    def _extract_archive(cls, archive_path: Path):
         install_dir = str(AppConfig.get_steam_cmd_path())
         archive_path_str = str(archive_path)
         if archive_path_str.endswith(".zip"):

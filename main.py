@@ -14,6 +14,7 @@ from Code.app_vars import AppConfig
 from Code.game import Game
 from Code.handlers import ModManager
 from Code.loc import Localization as loc
+from Code.steam_cmd import SteamCMDControl
 
 
 def show_error_message(title, message):
@@ -99,7 +100,7 @@ def args_no_gui(
 
 def main(debug: bool) -> None:
     logging.debug("Starting program...")
-    initialize_components(debug, AppConfig, loc, ModManager)
+    initialize_components(debug, AppConfig, loc, SteamCMDControl, ModManager)
     logging.debug("Initialization complete. Program is ready to run.")
 
     app_instance = App()
@@ -152,8 +153,9 @@ if __name__ == "__main__":
                 "ModLoader may have bugs on MacOS. Please report any issues to https://github.com/themanyfaceddemon/Mod_Loader/issues"
             )
         del platform_name
-        
+
         from Code.steam_cmd import SteamCMDInstaller
+
         SteamCMDInstaller.install()
 
         if args.ngui:

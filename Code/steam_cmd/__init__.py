@@ -1,3 +1,4 @@
+from .steam_cmd_control import SteamCMDControl
 from .steam_cmd_installer import SteamCMDInstaller
 
 # Swearing themanyfaceddemon

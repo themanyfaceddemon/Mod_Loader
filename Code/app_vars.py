@@ -126,38 +126,35 @@ class AppConfig:
         return cls._data_root / ".steam_cmd"
 
     @classmethod
+    def get_steam_cmd_exec(cls) -> Path:
+        return (
+            cls._data_root
+            / ".steam_cmd"
+            / ("steamcmd.exe" if platform.system() == "Windows" else "steamcmd")
+        )
+
+    @classmethod
     def set_steam_mods_path(cls) -> None:
         if platform.system() == "Windows":
             path_to_mod = (
                 Path.home()
-                / "AppData"
-                / "Local"
-                / "Daedalic Entertainment GmbH"
-                / "Barotrauma"
-                / "WorkshopMods"
-                / "Installed"
+                / "AppData/Local/Daedalic Entertainment GmbH"
+                / "Barotrauma/WorkshopMods/Installed"
             )
 
         elif platform.system() == "Linux":
             path_to_mod = (
                 Path.home()
-                / ".local"
-                / "share"
-                / "Daedalic Entertainment GmbH"
-                / "Barotrauma"
-                / "WorkshopMods"
-                / "Installed"
+                / ".local/share/Daedalic Entertainment GmbH"
+                / "Barotrauma/WorkshopMods/Installed"
             )
 
         elif platform.system() == "Darwin":
             path_to_mod = (
                 Path.home()
-                / "Library"
-                / "Application Support"
+                / "Library/Application Support"
                 / "Daedalic Entertainment GmbH"
-                / "Barotrauma"
-                / "WorkshopMods"
-                / "Installed"
+                / "Barotrauma/WorkshopMods/Installed"
             )
 
         else:
