@@ -143,7 +143,7 @@ if __name__ == "__main__":
         configure_logging(args.debug)
 
         platform_name = platform.system()
-        if platform_name == "win32":
+        if platform_name == "Windows":
             os.environ["PYTHONIOENCODING"] = "utf-8"
             os.environ["PYTHONUTF8"] = "1"
 
