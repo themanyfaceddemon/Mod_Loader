@@ -11,8 +11,8 @@ from Code.game import Game
 from Code.handlers import ModManager
 from Code.loc import Localization as loc
 
-from .mod_window import ModTab
-from .settings_window import SettingsTab
+from .mods_tab import ModsTab
+from .settings_tab import SettingsTab
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class AppInterface:
         AppInterface._create_viewport_menu_bar()
         AppInterface._create_main_window()
         SettingsTab.create()
-        ModTab.create()
+        ModsTab.create()
         dpg.set_value("main_tab_bar", "mod_tab")
         dpg.set_viewport_resize_callback(dpg_tools.rc_windows)
         dpg_tools.rc_windows()

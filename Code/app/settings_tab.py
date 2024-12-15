@@ -10,7 +10,7 @@ from Code.game import Game
 from Code.handlers import ModManager
 from Code.loc import Localization as loc
 
-from .mod_window import ModTab
+from .mods_tab import ModsTab
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,7 @@ class SettingsTab:
 
                 ModManager.load_mods()
                 ModManager.load_cslua_config()
-                ModTab.render_mods()
+                ModsTab.render_mods()
                 return
             else:
                 logger.warning(f"Invalid path or missing 'config_player.xml': {path}")
