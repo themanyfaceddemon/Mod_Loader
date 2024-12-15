@@ -24,9 +24,20 @@ class AppInterface:
         AppInterface._create_main_window()
         SettingsTab.create()
         ModsTab.create()
+
         dpg.set_value("main_tab_bar", "mod_tab")
-        dpg.set_viewport_resize_callback(dpg_tools.rc_windows)
+
+        dpg.set_viewport_resize_callback(AppInterface._res_callback)
         dpg_tools.rc_windows()
+
+    @staticmethod
+    def _res_callback() -> None:
+        dpg_tools.rc_windows()
+
+        AppConfig.set(
+            "last_viewport_size",
+            f"{dpg.get_viewport_width()} {dpg.get_viewport_height()}",
+        )
 
     @staticmethod
     def _create_main_window():
