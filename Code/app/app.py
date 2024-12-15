@@ -4,13 +4,8 @@ import threading
 
 import dearpygui.dearpygui as dpg
 
-from .app_initializer import AppInitializer
-
 
 class App:
-    def __init__(self) -> None:
-        AppInitializer.initialize()
-
     @staticmethod
     def run() -> None:
         try:

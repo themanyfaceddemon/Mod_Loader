@@ -11,8 +11,8 @@ from Code.game import Game
 from Code.handlers import ModManager
 from Code.loc import Localization as loc
 
-from .barotrauma_window import BarotraumaWindow
-from .mod_window import ModWindow
+from .mods_tab import ModsTab
+from .settings_tab import SettingsTab
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,22 @@ class AppInterface:
     def initialize():
         AppInterface._create_viewport_menu_bar()
         AppInterface._create_main_window()
-        ModWindow.create_window()
-        dpg.set_viewport_resize_callback(AppInterface.resize_windows)
-        AppInterface.resize_windows()
+        SettingsTab.create()
+        ModsTab.create()
+
+        dpg.set_value("main_tab_bar", "mod_tab")
+
+        dpg.set_viewport_resize_callback(AppInterface._res_callback)
+        dpg_tools.rc_windows()
+
+    @staticmethod
+    def _res_callback() -> None:
+        dpg_tools.rc_windows()
+
+        AppConfig.set(
+            "last_viewport_size",
+            f"{dpg.get_viewport_width()} {dpg.get_viewport_height()}",
+        )
 
     @staticmethod
     def _create_main_window():
@@ -39,51 +52,6 @@ class AppInterface:
     @staticmethod
     def _create_viewport_menu_bar():
         dpg.add_viewport_menu_bar(tag="main_view_bar")
-
-        with dpg.menu(
-            label=loc.get_string("menu-bar-settings-lable"), parent="main_view_bar"
-        ):
-            dpg.add_button(
-                label=loc.get_string("btn-set-game-dir"),
-                callback=BarotraumaWindow.create_window,
-            )
-            with dpg.tooltip(dpg.last_item()):
-                dpg.add_text(loc.get_string("btn-set-game-dir-desc"))
-
-            dpg.add_checkbox(
-                label=loc.get_string("setting-toggle-install-lua"),
-                tag="settings_install_lua",
-                default_value=AppConfig.get("game_config_auto_lua", False),  # type: ignore
-                callback=lambda s, a: AppConfig.set("game_config_auto_lua", a),
-            )
-
-            dpg.add_checkbox(
-                label=loc.get_string("setting-toggle-skip-intro"),
-                tag="settings_skip_intro",
-                default_value=AppConfig.get("game_config_skip_intro", False),  # type: ignore
-                callback=lambda s, a: AppConfig.set("game_config_skip_intro", a),
-            )
-
-            dpg.add_checkbox(
-                label=loc.get_string("menu-toggle-experimental"),
-                default_value=AppConfig.get("experimental", False),  # type: ignore
-                callback=lambda s, a: AppConfig.set("experimental", a),
-            )
-
-            lang_dict = {
-                "eng": loc.get_string("lang_code-eng"),
-                "rus": loc.get_string("lang_code-rus"),
-                "ger": loc.get_string("lang_code-ger"),
-            }
-
-            dpg.add_combo(
-                items=list(lang_dict.values()),
-                label=loc.get_string("menu-language"),
-                default_value=lang_dict[AppConfig.get("lang", "eng")],  # type: ignore
-                callback=lambda s, a: AppConfig.set(
-                    "lang", next(key for key, value in lang_dict.items() if value == a)
-                ),
-            )
 
         dpg.add_menu_item(
             label=loc.get_string("menu-bar-start-game"),
@@ -170,9 +138,7 @@ class AppInterface:
         if dpg.does_item_exist("debug_console"):
             dpg.delete_item("debug_console")
 
-        with dpg.window(
-            label="Debug Console", tag="debug_console", width=1, height=1
-        ):
+        with dpg.window(label="Debug Console", tag="debug_console", width=1, height=1):
             with dpg.child_window(
                 label="Output", tag="console_window", autosize_x=True, autosize_y=True
             ):
@@ -185,37 +151,7 @@ class AppInterface:
                 callback=AppInterface._process_command,
             )
 
-        AppInterface.resize_windows()
-
-    @staticmethod
-    def resize_windows():
-        viewport_width = dpg.get_viewport_width() - 40
-        viewport_height = dpg.get_viewport_height() - 80
-
-        windows = [
-            "main_window",
-            "baro_window",
-            "exp_game",
-            "game_config_window",
-            "cac_window",
-            "debug_console",
-        ]
-        for item in windows:
-            if dpg.does_item_exist(item):
-                dpg.configure_item(item, width=viewport_width, height=viewport_height)
-                dpg_tools.center_window(item)
-
-        half_item = [
-            "active_mod_search_tag",
-            "active_mods_child",
-            "inactive_mod_search_tag",
-            "inactive_mods_child",
-        ]
-        viewport_width = viewport_width / 2
-        viewport_height = viewport_height / 2
-        for item in half_item:
-            if dpg.does_item_exist(item):
-                dpg.configure_item(item, width=viewport_width, height=viewport_height)
+        dpg_tools.rc_windows()
 
     @staticmethod
     def start_game():
@@ -309,4 +245,4 @@ class AppInterface:
                                             wrap=0,
                                         )
 
-            AppInterface.resize_windows()
+            dpg_tools.rc_windows()

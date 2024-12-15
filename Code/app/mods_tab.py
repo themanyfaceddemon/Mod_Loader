@@ -8,20 +8,20 @@ from Code.loc import Localization as loc
 from Code.package import ModUnit
 
 
-class ModWindow:
+class ModsTab:
     dragged_mod_id = None
     active_mod_search_text = ""
     inactive_mod_search_text = ""
 
     @staticmethod
-    def create_window():
+    def create():
         with dpg.tab(
             label=loc.get_string("mod-tab-label"), parent="main_tab_bar", tag="mod_tab"
         ):
             with dpg.group(horizontal=True):
                 dpg.add_button(
                     label=loc.get_string("btn-sort-mods"),
-                    callback=ModWindow.sort_active_mods,
+                    callback=ModsTab.sort_active_mods,
                     tag="sort_button",
                 )
                 with dpg.tooltip("sort_button"):
@@ -76,12 +76,12 @@ class ModWindow:
                     dpg.add_input_text(
                         tag="active_mod_search_tag",
                         hint=loc.get_string("input-hint-search"),
-                        callback=ModWindow.on_search_changed,
+                        callback=ModsTab.on_search_changed,
                         user_data="active",
                     )
                     with dpg.child_window(
                         tag="active_mods_child",
-                        drop_callback=ModWindow.on_mod_dropped,
+                        drop_callback=ModsTab.on_mod_dropped,
                         user_data="active",
                         payload_type="MOD_DRAG",
                     ):
@@ -92,43 +92,43 @@ class ModWindow:
                     dpg.add_input_text(
                         tag="inactive_mod_search_tag",
                         hint=loc.get_string("input-hint-search"),
-                        callback=ModWindow.on_search_changed,
+                        callback=ModsTab.on_search_changed,
                         user_data="inactive",
                     )
                     with dpg.child_window(
                         tag="inactive_mods_child",
-                        drop_callback=ModWindow.on_mod_dropped,
+                        drop_callback=ModsTab.on_mod_dropped,
                         user_data="inactive",
                         payload_type="MOD_DRAG",
                     ):
                         pass
 
-        ModWindow.render_mods()
+        ModsTab.render_mods()
 
     @staticmethod
     def on_search_changed(sender, app_data, user_data):
         if user_data == "active":
-            ModWindow.active_mod_search_text = app_data.lower()
+            ModsTab.active_mod_search_text = app_data.lower()
 
         elif user_data == "inactive":
-            ModWindow.inactive_mod_search_text = app_data.lower()
+            ModsTab.inactive_mod_search_text = app_data.lower()
 
-        ModWindow.render_mods()
+        ModsTab.render_mods()
 
     @staticmethod
     def render_mods():
         ModManager.process_errors()
         dpg.delete_item("active_mods_child", children_only=True)
         for mod in ModManager.active_mods:
-            if ModWindow.active_mod_search_text in mod.name.lower():
-                ModWindow.add_movable_mod(mod, "active", "active_mods_child")
+            if ModsTab.active_mod_search_text in mod.name.lower():
+                ModsTab.add_movable_mod(mod, "active", "active_mods_child")
 
         dpg.delete_item("inactive_mods_child", children_only=True)
         for mod in ModManager.inactive_mods:
-            if ModWindow.inactive_mod_search_text in mod.name.lower():
-                ModWindow.add_movable_mod(mod, "inactive", "inactive_mods_child")
+            if ModsTab.inactive_mod_search_text in mod.name.lower():
+                ModsTab.add_movable_mod(mod, "inactive", "inactive_mods_child")
 
-        error_count, warning_count = ModWindow.count_mods_with_issues()
+        error_count, warning_count = ModsTab.count_mods_with_issues()
         dpg.set_value(
             "error_count_text", loc.get_string("error-count", count=error_count)
         )
@@ -145,7 +145,7 @@ class ModWindow:
             dpg.add_text(
                 mod.name,
                 tag=mod_name_tag,
-                drop_callback=ModWindow.on_mod_dropped,
+                drop_callback=ModsTab.on_mod_dropped,
                 payload_type="MOD_DRAG",
                 user_data={"mod_id": mod.id, "status": status},
             )
@@ -155,7 +155,7 @@ class ModWindow:
                     dpg.add_text(loc.get_string("label-author"), color=[0, 102, 204])
                     dpg.add_text(
                         mod.metadata.author_name
-                        if mod.metadata.author_name == "base-unknown"
+                        if mod.metadata.author_name != "base-unknown"
                         else loc.get_string("base-unknown")
                     )
 
@@ -179,8 +179,6 @@ class ModWindow:
                         loc.get_string("label-mod-version"), color=[34, 139, 34]
                     )
                     dpg.add_text(mod.metadata.mod_version)
-
-
 
                 if mod.metadata.errors:
                     dpg.add_text(loc.get_string("label-errors"), color=[255, 0, 0])
@@ -216,7 +214,7 @@ class ModWindow:
 
                 dpg.add_button(
                     label=loc.get_string("btn-show-full-details"),
-                    callback=lambda: ModWindow.show_details_window(mod),
+                    callback=lambda: ModsTab.show_details_window(mod),
                 )
 
             with dpg.drag_payload(
@@ -264,7 +262,7 @@ class ModWindow:
                         )
                         dpg.add_text(
                             mod.metadata.author_name
-                            if mod.metadata.author_name == "base-unknown"
+                            if mod.metadata.author_name != "base-unknown"
                             else loc.get_string("base-unknown")
                         )
 
@@ -305,7 +303,7 @@ class ModWindow:
                             loc.get_string("label-mod-version"), color=[34, 139, 34]
                         )
                         dpg.add_text(mod.metadata.mod_version)
-                
+
                 if AppConfig.get("debug", False):
                     dpg.add_button(
                         label="print obj info",
@@ -368,12 +366,12 @@ class ModWindow:
             else:
                 ModManager.move_inactive_mod_to_end(dragged_mod_id)
 
-        ModWindow.render_mods()
+        ModsTab.render_mods()
 
     @staticmethod
     def sort_active_mods():
         ModManager.sort()
-        ModWindow.render_mods()
+        ModsTab.render_mods()
 
     @staticmethod
     def count_mods_with_issues():
