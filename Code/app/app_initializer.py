@@ -2,6 +2,7 @@ import sys
 
 import dearpygui.dearpygui as dpg
 
+from Code.app_vars import AppConfig
 from Code.dpg_tools import FontManager
 from Code.loc import Localization as loc
 
@@ -11,7 +12,7 @@ from .error_handler import ErrorHandler
 
 class AppInitializer:
     @staticmethod
-    def initialize():
+    def init():
         AppInitializer._init_dpg()
         AppInitializer._init_viewport()
         AppInitializer._init_fronts()
@@ -25,11 +26,13 @@ class AppInitializer:
 
     @staticmethod
     def _init_viewport():
+        size = AppConfig.get("last_viewport_size", "600 400")
+        width, height = size.split(" ")  # type: ignore
         dpg.create_viewport(
             title=loc.get_string("viewport-name"),
-            width=600,
+            width=int(width),
             min_width=600,
-            height=400,
+            height=int(height),
             min_height=400,
         )
         dpg.show_viewport()

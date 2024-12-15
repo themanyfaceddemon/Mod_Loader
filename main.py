@@ -10,6 +10,7 @@ from typing import Any, Type
 from colorama import Fore, Style, init
 
 from Code.app import App
+from Code.app.app_initializer import AppInitializer
 from Code.app_vars import AppConfig
 from Code.game import Game
 from Code.handlers import ModManager
@@ -100,12 +101,13 @@ def args_no_gui(
 
 def main(debug: bool) -> None:
     logging.debug("Starting program...")
-    initialize_components(debug, AppConfig, loc, SteamCMDControl, ModManager)
+    initialize_components(
+        debug, AppConfig, loc, ModManager, SteamCMDControl, AppInitializer
+    )
     logging.debug("Initialization complete. Program is ready to run.")
 
-    app_instance = App()
     logging.debug("App instance created. Running app...")
-    app_instance.run()
+    App.run()
     logging.debug("App run completed.")
 
 
@@ -144,7 +146,7 @@ if __name__ == "__main__":
         configure_logging(args.debug)
 
         platform_name = platform.system()
-        if platform_name == "win32":
+        if platform_name == "Windows":
             os.environ["PYTHONIOENCODING"] = "utf-8"
             os.environ["PYTHONUTF8"] = "1"
 
