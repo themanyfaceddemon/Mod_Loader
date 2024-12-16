@@ -288,7 +288,9 @@ class ModUnit(Identifier):
         if not metadata_path.exists():
             search_pattern = f"{obj.id}.xml"
             found_files = list(
-                (AppConfig.get_root_path() / "InternalLibrary").rglob(search_pattern)
+                (AppConfig.get_data_root_path() / "InternalLibrary").rglob(
+                    search_pattern
+                )
             )
 
             if found_files:
@@ -368,7 +370,9 @@ class ModUnit(Identifier):
         if not metadata_path.exists():
             search_pattern = f"{self.id}.xml"
             found_files = list(
-                (AppConfig.get_root_path() / "InternalLibrary").rglob(search_pattern)
+                (AppConfig.get_data_root_path() / "InternalLibrary").rglob(
+                    search_pattern
+                )
             )
 
             if found_files:

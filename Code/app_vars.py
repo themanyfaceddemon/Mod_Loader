@@ -80,7 +80,7 @@ class AppConfig:
         cls.user_config[key] = value
 
     @classmethod
-    def get_root_path(cls) -> Path:
+    def get_data_root_path(cls) -> Path:
         return cls._data_root
 
     @classmethod

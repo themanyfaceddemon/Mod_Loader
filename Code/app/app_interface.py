@@ -181,7 +181,7 @@ class AppInterface:
             dpg.focus_item("cac_window")
             return
 
-        contributors_path = AppConfig.get_root_path() / "contributors.json"
+        contributors_path = AppConfig.get_data_root_path() / "contributors.json"
 
         try:
             with open(contributors_path, "r", encoding="utf-8") as f:
