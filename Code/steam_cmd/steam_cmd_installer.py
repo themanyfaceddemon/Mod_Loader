@@ -1,9 +1,9 @@
 import logging
 import platform
-import subprocess
 import tarfile
 import zipfile
 from pathlib import Path
+from typing import Union
 
 import requests
 
@@ -23,28 +23,13 @@ class SteamCMDInstaller:
     )
 
     @classmethod
-    def _run_steamcmd(cls):
-        exec_file = AppConfig.get_steam_cmd_exec()
-
-        if not exec_file.exists():
-            raise RuntimeError(
-                "steamcmd not found. Please ensure SteamCMD is installed."
-            )
-
-        try:
-            subprocess.run([str(exec_file), "+quit"], check=True)
-
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Error running SteamCMD: {e}")
-
-    @classmethod
-    def _download_steamcmd(cls):
+    def _download_steamcmd(cls) -> Union[Path, None]:
         install_dir = AppConfig.get_steam_cmd_path()
         archive_path = install_dir / cls._ARCHIVE_NAME
 
         if AppConfig.get_steam_cmd_exec().exists():
             logger.info("SteamCMD archive already exists. Skipping download.")
-            return archive_path
+            return None
 
         url = cls._DOWNLOAD_URL.get(platform.system(), None)
         if url is None:
@@ -81,8 +66,8 @@ class SteamCMDInstaller:
     def install(cls):
         try:
             archive_path = cls._download_steamcmd()
-            cls._extract_archive(archive_path)
-            cls._run_steamcmd()
+            if archive_path:
+                cls._extract_archive(archive_path)
 
         except Exception as e:
             logger.error(f"Error during installation: {e}")
